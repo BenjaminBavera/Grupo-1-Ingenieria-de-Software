@@ -3,8 +3,8 @@ package com.is1.proyecto.models;
 import org.javalite.activejdbc.Model;
 import org.javalite.activejdbc.annotations.Table;
 
-@Table("teachers") // Esta anotación asocia explícitamente el modelo 'Teacher' con la tabla 'teacher' en la DB.
-public class Teacher extends User {
+@Table("profesor") // Esta anotación asocia explícitamente el modelo 'Teacher' con la tabla 'teacher' en la DB.
+public class Profesor extends Model {
 
     // ActiveJDBC mapea automáticamente las columnas de la tabla 'users'
     // (como 'id', 'name', 'password', etc.) a los atributos de esta clase.
@@ -15,35 +15,35 @@ public class Teacher extends User {
     // aunque los métodos genéricos de Model (getString(), set(), getInteger(), etc.) ya funcionan.
 
     public String getName() {
-        return getString("name"); // Obtiene el valor de la columna 'name'
+        return getString("nombre"); // Obtiene el valor de la columna 'name'
     }
 
     public void setName(String name) {
-        set("name", name); // Establece el valor para la columna 'name'
-    }
-
-    public String getPassword() {
-        return getString("password"); // Obtiene el valor de la columna 'password'
-    }
-
-    public void setPassword(String password) {
-        set("password", password); // Establece el valor para la columna 'password'
+        set("nombre", name); // Establece el valor para la columna 'name'
     }
 
     public String getLastName() {
-        return getString("lastname");
+        return getString("apellido");
     }
 
     public void setLastname(String lastname){
-        set("lastname", lastname);
+        set("apellido", lastname);
+    }
+
+    public int getTelefono(){
+        return getInteger("telefono");   
+    }    
+
+    public void setTelefono(int tel){
+        set("telefono", tel);
     }
 
     public String getEmail(){
-        return getString("email");
+        return getString("mail");
     }
 
     public void setEmail(String email){
-        set("email", email);
+        set("mail", email);
     }
 
     public int getDNI(){

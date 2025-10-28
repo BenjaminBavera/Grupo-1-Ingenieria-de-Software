@@ -17,14 +17,14 @@ CREATE TABLE persona(
     telefono INTEGER NOT NULL
 );
 
-CREATE TABLE teachers(
+CREATE TABLE profesor(
     dni INTEGER NOT NULL,
     mail TEXT NOT NULL
 
     CONSTRAINT fk_teacher_person FOREIGN KEY (dni) REFERENCES person(dni)
 );
 
-CREATE TABLE student(
+CREATE TABLE estudiante(
     dni INTEGER NOT NULL,
     añoIngreso INTEGER NOT NULL,
     nivel ENUM(principiante, avanzado) 
