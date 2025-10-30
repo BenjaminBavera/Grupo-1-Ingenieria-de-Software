@@ -14,20 +14,20 @@ public class Profesor extends Model {
     // Opcional: Puedes agregar métodos getters y setters si prefieres un acceso más tipado,
     // aunque los métodos genéricos de Model (getString(), set(), getInteger(), etc.) ya funcionan.
 
-    public String getName() {
-        return getString("nombre"); // Obtiene el valor de la columna 'name'
+    public String getNombre() {
+        return getString("nombre"); // Obtiene el valor de la columna 'nombre'
     }
 
-    public void setName(String name) {
-        set("nombre", name); // Establece el valor para la columna 'name'
+    public void setNombre(String nombre) {
+        set("nombre", nombre); // Establece el valor para la columna 'nombre'
     }
 
-    public String getLastName() {
+    public String getApellido() {
         return getString("apellido");
     }
 
-    public void setLastname(String lastname){
-        set("apellido", lastname);
+    public void setApellido(String apellido){
+        set("apellido", apellido);
     }
 
     public int getTelefono(){
@@ -38,12 +38,12 @@ public class Profesor extends Model {
         set("telefono", tel);
     }
 
-    public String getEmail(){
-        return getString("mail");
+    public String getCorreo(){
+        return getString("correo");
     }
 
-    public void setEmail(String email){
-        set("mail", email);
+    public void setCorreo(String correo){
+        set("mail", correo);
     }
 
     public int getDNI(){

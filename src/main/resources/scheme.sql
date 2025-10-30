@@ -3,6 +3,10 @@ PRAGMA foreign_keys = ON; --Habilita las claves foráneas
 -- Elimina la tabla 'users' si ya existe para asegurar un inicio limpio
 DROP TABLE IF EXISTS users;
 
+DROP TABLE IF EXISTS persona;
+DROP TABLE IF EXISTS estudiante;
+DROP TABLE IF EXISTS profesor;
+
 -- Crea la tabla 'users' con los campos originales, adaptados para SQLite
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT, -- Clave primaria autoincremental para SQLite
@@ -10,24 +14,27 @@ CREATE TABLE users (
     password TEXT NOT NULL           -- Contraseña hasheada (TEXT es el tipo de cadena recomendado para SQLite)
 );
 
-CREATE TABLE persona(
+-- Tabla persona
+CREATE TABLE persona (
+    dni INTEGER PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellido TEXT NOT NULL,
-    dni INTEGER NOT NULL UNIQUE,
-    telefono INTEGER NOT NULL
+    telefono TEXT 
 );
 
-CREATE TABLE profesor(
+-- Tabla profesor
+CREATE TABLE profesor (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
-    mail TEXT NOT NULL
-
-    CONSTRAINT fk_teacher_person FOREIGN KEY (dni) REFERENCES person(dni)
+    correo TEXT NOT NULL,
+    FOREIGN KEY (dni) REFERENCES persona(dni)
 );
 
-CREATE TABLE estudiante(
+-- Tabla estudiante
+CREATE TABLE estudiante (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
-    añoIngreso INTEGER NOT NULL,
-    nivel ENUM(principiante, avanzado) 
-
-    CONSTRAINT fk_student FOREIGN KEY (dni) REFERENCES person(dni)
-)
+    anioIngreso INTEGER NOT NULL,
+    nivel TEXT CHECK(nivel IN ('principiante', 'avanzado')),
+    FOREIGN KEY (dni) REFERENCES persona(dni)
+);
