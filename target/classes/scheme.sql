@@ -1,8 +1,7 @@
 PRAGMA foreign_keys = ON; --Habilita las claves foráneas
 
--- Elimina la tabla 'users' si ya existe para asegurar un inicio limpio
+-- Elimina la tablas si ya existen para asegurar un inicio limpio
 DROP TABLE IF EXISTS users;
-
 DROP TABLE IF EXISTS persona;
 DROP TABLE IF EXISTS estudiante;
 DROP TABLE IF EXISTS profesor;
@@ -26,7 +25,7 @@ CREATE TABLE persona (
 CREATE TABLE profesor (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
-    correo TEXT NOT NULL,
+    correo TEXT NOT NULL UNIQUE,
     FOREIGN KEY (dni) REFERENCES persona(dni)
 );
 
