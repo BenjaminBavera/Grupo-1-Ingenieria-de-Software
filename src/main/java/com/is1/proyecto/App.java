@@ -305,7 +305,7 @@ public class App {
             // Si no hay un nombre de usuario en la sesión, la bandera es nula o falsa,
             // significa que el usuario no está logueado o su sesión expiró.
             if (currentUsername == null || loggedIn == null || !loggedIn) {
-                System.out.println("DEBUG: Acceso no autorizado a /registrarProfesor. Redirigiendo a /dashboard.");
+                System.out.println("DEBUG: Acceso no autorizado a /registrarProfesor. Redirigiendo a /login.");
                 // Redirige al login con un mensaje de error.
                 res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
                 return null; // Importante retornar null después de una redirección.
@@ -342,27 +342,24 @@ public class App {
 
             // Validar formato de correo
             if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                res.redirect("/registrarProfesor?error=Correo inválido.");
+                res.status(400); // Código de estado HTTP 400 (Bad Request).
+                res.redirect("/registrarProfesor?error=Correo invalido.");
                 return "";
             }
-
-            try {
-                // Verificar si la persona ya existe
+            // Verificar si la persona ya existe
                 Persona personaExistente = Persona.findFirst("dni = ?", dni);
                 if (personaExistente != null) {
-                    res.status(400);
-                    res.redirect("/registrarProfesor?error=El DNI ya está registrado.");
+                    res.redirect("/registrarProfesor?error=El DNI ya esta registrado.");
                     return "";
                 }
-
                 // Verificar si el correo del profesor ya existe
                 Profesor profesorExistente = Profesor.findFirst("correo = ?", correo);
                 if (profesorExistente != null) {
-                    res.status(400);
-                    res.redirect("/registrarProfesor?error=El correo ya está registrado.");
+                    res.redirect("/registrarProfesor?error=El correo ya esta registrado.");
                     return "";
                 }
-                
+
+            try {
                 // Intenta crear y guardar el nuevo profesor en la base de datos.
                 Persona per = new Persona();
                 Profesor pro = new Profesor(); // Crea una nueva instancia del modelo Profesor.
@@ -409,9 +406,8 @@ public class App {
             // --- Validacion de correo---
             if (correo == null || correo.isEmpty() || !correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
                 res.status(400); // Bad Request.
-                return objectMapper.writeValueAsString(Map.of("error", "Correo inválido."));
+                return objectMapper.writeValueAsString(Map.of("error", "Correo invalido."));
             }
-
 
             try {
                 // --- Creación y guardado del usuario usando el modelo ActiveJDBC ---

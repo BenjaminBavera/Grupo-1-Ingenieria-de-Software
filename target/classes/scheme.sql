@@ -26,7 +26,7 @@ CREATE TABLE profesor (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
     correo TEXT NOT NULL UNIQUE,
-    FOREIGN KEY (dni) REFERENCES persona(dni)
+    CONSTRAINT fk_profesor_persona FOREIGN KEY (dni) REFERENCES persona(dni) ON DELETE CASCADE
 );
 
 -- Tabla estudiante
@@ -35,5 +35,5 @@ CREATE TABLE estudiante (
     dni INTEGER NOT NULL,
     anioIngreso INTEGER NOT NULL,
     nivel TEXT CHECK(nivel IN ('principiante', 'avanzado')),
-    FOREIGN KEY (dni) REFERENCES persona(dni)
+    CONSTRAINT fk_estudiante_persona FOREIGN KEY (dni) REFERENCES persona(dni) ON DELETE CASCADE
 );
