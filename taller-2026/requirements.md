@@ -18,3 +18,6 @@ La Universidad presenta ineficiencias en la gestión académica debido a la frag
 
 ## 5. Tamaño del equipo
 El proyecto es llevado adelante por un equipo de **3 integrantes**
+
+## 7. Plazo estimado
+El ciclo de vida del proyecto se planifica para un ciclo de **un cuatrimestre (aprox. 4 meses)**, con entregas parciales enfocadas en la evolución del análisis hacia la implementación final.
