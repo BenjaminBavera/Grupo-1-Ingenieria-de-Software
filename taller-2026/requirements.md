@@ -28,3 +28,21 @@ El proyecto es llevado adelante por un equipo de **3 integrantes**
 
 ## 7. Plazo estimado
 El ciclo de vida del proyecto se planifica para un ciclo de **un cuatrimestre (aprox. 4 meses)**, con entregas parciales enfocadas en la evolución del análisis hacia la implementación final.
+
+## Riesgos del proyecto
+
+| Tipo de riesgo | Descripcion | Probabilidad | Impacto | Identificado por |
+|----------------|-------------|--------------|---------|------------------|
+| Tecnico | Complejidad en validar correlativas | Alta | Alto | LLM y equipo|
+| Tecnico | Modelo UML incorrecto  | Media | Alto | Equipo |             
+| Tecnico | Manejo de estados inconsistentes | Alta | Alto | LLM |
+| Tecnico | Acoplamiento excesivo entre clases | Medio | Medio | LLM |               
+| Tecnico | Escalamiento de privilegios | Media | Alto | Equipo |
+| Organizacional | Ambiguedades | Alta | Alto | Equipo y LLM | 
+| Organizacional | Mala comunicacion entre compañeros | Media | Medio | Equipo y LLM |
+| Organizacional | Cambios en requerimientos | Media | Medio | LLM |
+| Planificacion | Subestimar la complejitud | Alta | Alto | LLM |
+| Planificacion | Falta de tests | Alta | Alto | Equipo |
+| Planificacion | Mala priorizacion | Media | Medio | LLM |
+| Planificacion | Tiempos mal calculados | Alta | Alto | Equipo |
+| Humano | Sobrecarga Individual | Alta | Alto | Equipo |
