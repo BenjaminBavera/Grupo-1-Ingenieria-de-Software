@@ -29,6 +29,7 @@ El proyecto es llevado adelante por un equipo de **3 integrantes**
 ## 7. Plazo estimado
 El ciclo de vida del proyecto se planifica para un ciclo de **un cuatrimestre (aprox. 4 meses)**, con entregas parciales enfocadas en la evolución del análisis hacia la implementación final.
 
+
 ## Riesgos del proyecto
 
 | Tipo de riesgo | Descripcion | Probabilidad | Impacto | Identificado por |
@@ -46,3 +47,15 @@ El ciclo de vida del proyecto se planifica para un ciclo de **un cuatrimestre (a
 | Planificacion | Mala priorizacion | Media | Medio | LLM |
 | Planificacion | Tiempos mal calculados | Alta | Alto | Equipo |
 | Humano | Sobrecarga Individual | Alta | Alto | Equipo |
+
+## 9. Problemas encontrados
+* **Modelado de Correlatividades:** La complejidad de las relaciones recursivas en las materias requirió varias iteraciones del diagrama de clases.
+* **Gestión de Estados:** Definir la transición de un alumno de "regular" a "aprobado" según las diferentes condiciones de las materias.
+* **Sincronización de Base de Datos:** En las primeras etapas, coordinar los cambios en el archivo de SQLite entre los integrantes requirió establecer reglas claras de *commit* y *merge*.
+
+## 10. Forma de organización del equipo
+Se adopta una metodología ágil (**Scrum/Kanban**):
+* **Reuniones de sincronización:** Para evaluar avances.
+* **Gestión de tareas:** Uso de *Issues* en GitHub o tableros para el seguimiento de las Historias de Usuario.
+* **Revisiones de pares:** Control de calidad sobre el código y la documentación generada.
+
