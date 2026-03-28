@@ -19,5 +19,12 @@ La Universidad presenta ineficiencias en la gestión académica debido a la frag
 ## 5. Tamaño del equipo
 El proyecto es llevado adelante por un equipo de **3 integrantes**
 
+## 6. Tecnologías elegidas y justificación
+* **Lenguaje:** **Java**. Seleccionado por su robustez, manejo de excepciones y para aprovechar el paradigma orientado a objetos. La estructura de paquetes refleja el uso de herencia (clase Persona como base de Estudiante y Profesor) para evitar la duplicación de atributos comunes y facilitar el mantenimiento.
+* **Base de Datos:** **SQLite**. Se eligió por su **portabilidad "zero-configuration"**. Al ser un motor *serverless* basado en un único archivo, facilita enormemente el trabajo colaborativo en el equipo de 3, permitiendo compartir el estado de la base de datos a través del repositorio sin necesidad de instalar motores pesados como MySQL o PostgreSQL en cada equipo.
+* **Motor de Plantillas:** **Mustache**. Se seleccionó para la capa de presentación. Al ser un sistema de plantillas logic-less, nos obligó a mantener una separación limpia entre la lógica de negocio en Java y la visualización, facilitando la creación de interfaces dinámicas como el dashboard y los formularios de registro.
+* **Patrón de Diseño:** **Singleton**. Implementado en la clase DBConfigSingleton para gestionar la conexión a SQLite. Esto garantiza que exista una única instancia de la conexión a la base de datos en toda la ejecución, optimizando el uso de recursos y evitando bloqueos en el archivo de la base de datos.
+* **Control de Versiones:** **Git/GitHub**. Indispensable para coordinar el trabajo de los 3 integrantes.
+
 ## 7. Plazo estimado
 El ciclo de vida del proyecto se planifica para un ciclo de **un cuatrimestre (aprox. 4 meses)**, con entregas parciales enfocadas en la evolución del análisis hacia la implementación final.
