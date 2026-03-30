@@ -3,6 +3,8 @@ package com.is1.proyecto.models;
 import org.javalite.activejdbc.Model;
 import org.javalite.activejdbc.annotations.Table;
 
+import java.time.LocalDate;
+
 @Table("estudiante")
 public class Estudiante extends Model{
     public String getName(){
@@ -35,5 +37,14 @@ public class Estudiante extends Model{
 
     public void setDNI(int dni){
         set("dni", dni);
+    }
+
+    @Override
+    protected void beforeSave() {
+        // Solo lo asignamos si es un registro nuevo (si no tiene año cargado)
+        if (get("anioIngreso") == null) {
+            int currentYear = LocalDate.now().getYear();
+            set("anioIngreso", currentYear);
+        }
     }
 }
