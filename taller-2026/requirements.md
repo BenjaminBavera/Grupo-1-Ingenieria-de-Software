@@ -59,3 +59,7 @@ Se adopta una metodología ágil (**Scrum/Kanban**):
 | Humano | Sobrecarga Individual | Alta | Alto | Equipo |
 | Humano | Falta de experiencia en diseño OO | Media | Alto | LLM |
 | Humano | Falta de compromiso | Media | Medio | Equipo |
+
+El prompt que utilizamos es el siguiente (Primero le pasamos una imagen de nuestro modelo UML a la IA) :
+
+"Este es el diagrama uml de un sistema de una universidad. Ya tengo el codigo hecho, pero solo implemente el alta y baja de profesores al sistema. Lo proximo que hare va a ser: Administración Académica:** Alta, Baja y Modificación de alumnos, docentes, materias y planes. * **Validación de Correlativas:** Control automático de requisitos previos antes de confirmar una inscripción. * **Gestión de Cursadas y Notas:** Registro de la actividad académica y cálculo de promedios. * **Consultas de Avance:** Visualización del plan de estudios y materias aprobadas/pendientes. Todo esto en el lenguaje java. Necesito que vos identifiques riesgos del proyecto. Actúa como un auditor de proyectos de software. A partir de la siguiente descripción, identifica: - Riesgos técnicos - Riesgos organizacionales - Riesgos de planificación - Riesgos humanos Clasifícalos por probabilidad e impacto."
