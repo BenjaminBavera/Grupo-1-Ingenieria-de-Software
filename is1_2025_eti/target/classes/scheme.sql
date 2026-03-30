@@ -37,3 +37,20 @@ CREATE TABLE estudiante (
     nivel TEXT CHECK(nivel IN ('principiante', 'avanzado')),
     CONSTRAINT fk_estudiante_persona FOREIGN KEY (dni) REFERENCES persona(dni) ON DELETE CASCADE
 );
+
+-- Tabla carrera
+CREATE TABLE carrera (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    codigo INTEGER UNIQUE,
+    plan_vigente_id INTEGER,
+    FOREIGN KEY (plan_vigente_id) REFERENCES plan(id)
+);
+
+--Tabla plan
+CREATE TABLE plan(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    año INTEGER NOT NULL,
+    carrera_id INTEGER NOT NULL,
+    FOREIGN KEY (carrera_id) REFERENCES carrera(id) ON DELETE CASCADE
+);
