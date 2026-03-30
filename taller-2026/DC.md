@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     class Persona{
         -String Nombre
@@ -68,3 +69,4 @@ classDiagram
         ingressante
         avanzado
     }
+```
