@@ -47,10 +47,38 @@ CREATE TABLE carrera (
     FOREIGN KEY (plan_vigente_id) REFERENCES plan(id)
 );
 
---Tabla plan
+-- Tabla plan
 CREATE TABLE plan(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     año INTEGER NOT NULL,
     carrera_id INTEGER NOT NULL,
     FOREIGN KEY (carrera_id) REFERENCES carrera(id) ON DELETE CASCADE
+);
+
+-- Tabla materia
+CREATE TABLE materia(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    codigo INTEGER UNIQUE
+);
+
+-- Tabla de la relacion N a N Plan-Materia
+CREATE TABLE plan_materia (
+    plan_id INTEGER,
+    materia_id INTEGER,
+    PRIMARY KEY (plan_id, materia_id),
+
+    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE,
+    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE
+);
+
+-- Tabla correlatividad (relacion recursiva de materia)
+CREATE TABLE correlatividad(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    materia_id INTEGER NOT NULL,
+    correlativa_id INTEGER NOT NULL,
+    tipo TEXT CHECK(tipo IN ('regular', 'aprobada')),
+
+    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE,
+    FOREIGN KEY (correlativa_id) REFERENCES materia(id) ON DELETE CASCADE
 );
