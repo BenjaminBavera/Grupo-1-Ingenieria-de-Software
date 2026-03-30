@@ -43,7 +43,7 @@ public class Profesor extends Model {
     }
 
     public void setCorreo(String correo){
-        set("mail", correo);
+        set("correo", correo);
     }
 
     public int getDNI(){
