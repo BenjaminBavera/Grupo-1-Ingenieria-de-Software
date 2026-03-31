@@ -2,17 +2,15 @@ package com.is1.proyecto; // Define el paquete de la aplicación, debe coincidir
 
 // Importaciones necesarias para la aplicación Spark
 import java.util.HashMap; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
+import java.util.List;
 import java.util.Map; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
 
+import com.is1.proyecto.models.*;
 import org.javalite.activejdbc.Base; // Clase central de ActiveJDBC para gestionar la conexión a la base de datos.
 import org.mindrot.jbcrypt.BCrypt; // Utilidad para hashear y verificar contraseñas de forma segura.
 
 import com.fasterxml.jackson.databind.ObjectMapper; // Representa un modelo de datos y el nombre de la vista a renderizar.
 import com.is1.proyecto.config.DBConfigSingleton; // Motor de plantillas Mustache para Spark.
-import com.is1.proyecto.models.Persona; // Para crear mapas de datos (modelos para las plantillas).
-import com.is1.proyecto.models.Profesor; // Interfaz Map, utilizada para Map.of() o HashMap.
-import com.is1.proyecto.models.Estudiante;
-import com.is1.proyecto.models.User; // Clase Singleton para la configuración de la base de datos.
 
 import spark.ModelAndView; // Modelo de ActiveJDBC que representa la tabla 'users'.
 import static spark.Spark.after; // Modelo de ActiveJDBC que representa la tabla 'profesor'.
@@ -49,8 +47,11 @@ public class App {
         // Este filtro se ejecuta antes de cada solicitud HTTP.
         before((req, res) -> {
             try {
-                // Abre una conexión a la base de datos utilizando las credenciales del singleton.
-                Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+                // VERIFICACIÓN CLAVE: Solo abre la conexión si no hay una ya abierta en este hilo.
+                if (!Base.hasConnection()) {
+                    // Abre una conexión a la base de datos utilizando las credenciales del singleton.
+                    Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+                }
                 System.out.println(req.url());
 
             } catch (Exception e) {
@@ -65,8 +66,11 @@ public class App {
         // Este filtro se ejecuta después de que cada solicitud HTTP ha sido procesada.
         after((req, res) -> {
             try {
-                // Cierra la conexión a la base de datos para liberar recursos.
-                Base.close();
+                // VERIFICACIÓN CLAVE: Solo cierra la conexión si efectivamente hay una abierta.
+                if (Base.hasConnection()) {
+                    // Cierra la conexión a la base de datos para liberar recursos.
+                    Base.close();
+                }
             } catch (Exception e) {
                 // Si ocurre un error al cerrar la conexión, se registra.
                 System.err.println("Error al cerrar conexión con ActiveJDBC: " + e.getMessage());
@@ -546,5 +550,74 @@ public class App {
                 return objectMapper.writeValueAsString(Map.of("error", "Error interno al registrar estudiante: " + e.getMessage()));
             }
         });
+
+        get("/crearMateria", (req,res) -> {
+            return new ModelAndView(new HashMap<>(), "crear_materia.mustache");
+        }, new MustacheTemplateEngine());
+
+        post("/crearMateria", (req, res) -> {
+           String nombre = req.queryParams("nombre");
+           int codigo = Integer.parseInt(req.queryParams("codigo"));
+
+           Materia m = new Materia();
+           m.set("nombre", nombre);
+           m.set("codigo",codigo);
+           m.saveIt();
+
+           res.redirect("/dashboard?successMessage=Materia creada");
+           return null;
+        });
+
+        post("/vincularPlanMateria", (req,res) ->{
+            int planID = Integer.parseInt(req.queryParams("plan_id"));
+            int materiaID = Integer.parseInt(req.queryParams("materia_id"));
+
+            PlanMateria pm = new PlanMateria();
+            pm.set("plan_id", planID);
+            pm.set("materia_id", materiaID);
+            pm.saveIt();
+
+            res.redirect("/dashboard?successMessage=Materia vinculada al plan");
+            return null;
+        });
+
+        get("/inscripcion", (req,res) -> {
+//            // 1. Verificar que haya iniciado sesión
+//            Boolean loggedIn = req.session().attribute("loggedIn");
+//            if (loggedIn == null || !loggedIn) {
+//                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
+//                return null;
+//            }
+//
+//            // 2. Verificar que el rol sea ESPECÍFICAMENTE "estudiante"
+//            String rolUsuario = req.session().attribute("rol");
+//            // Asumimos que guardaste el rol en minúsculas en la BD
+//            if (rolUsuario == null || !rolUsuario.equals("estudiante")) {
+//                System.out.println("DEBUG: Intento de acceso denegado a /inscripcion por rol: " + rolUsuario);
+//                // Lo mandamos al dashboard con un mensaje de error
+//                res.redirect("/dashboard?error=Acceso denegado. Esta sección es exclusiva para estudiantes.");
+//                return null;
+//            }
+
+            Map<String, Object> model = new HashMap<>();
+
+            List<Materia> materias = Materia.findAll();
+            model.put("materias", materias);
+
+            return new ModelAndView(model, "inscripcion.mustache");
+        }, new MustacheTemplateEngine());
+
+        post("/inscribir", (req, res) ->{
+            int materiaID = Integer.parseInt(req.queryParams("materia_id"));
+            int estudianteID = req.session().attribute("userID");
+
+            EstudianteMateria inscripcion = new EstudianteMateria();
+            inscripcion.set("estudiante_id", estudianteID);
+            inscripcion.set("materia_id", materiaID);
+
+            res.redirect("/inscripcion?successMessage=Inscripción exitosa");
+            return null;
+        });
+
     } // Fin del método main
 } // Fin de la clase App

@@ -76,3 +76,12 @@ CREATE TABLE IF NOT EXISTS correlatividad(
     FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE,
     FOREIGN KEY (correlativa_id) REFERENCES materia(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS estudiante_materia(
+    estudiante_id INTEGER NOT NULL,
+    materia_id INTEGER NOT NULL,
+    estado TEXT DEFAULT 'inscripto',
+    PRIMARY KEY (estudiante_id, materia_id),
+    FOREIGN KEY (estudiante_id) REFERENCES estudiante(id) ON DELETE CASCADE,
+    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE
+);
