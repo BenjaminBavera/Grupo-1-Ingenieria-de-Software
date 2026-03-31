@@ -1,20 +1,14 @@
 PRAGMA foreign_keys = ON; --Habilita las claves foráneas
 
--- Elimina la tablas si ya existen para asegurar un inicio limpio
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS persona;
-DROP TABLE IF EXISTS estudiante;
-DROP TABLE IF EXISTS profesor;
-
 -- Crea la tabla 'users' con los campos originales, adaptados para SQLite
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT, -- Clave primaria autoincremental para SQLite
     name TEXT NOT NULL UNIQUE,          -- Nombre de usuario (TEXT es el tipo de cadena recomendado para SQLite), con restricción UNIQUE
     password TEXT NOT NULL           -- Contraseña hasheada (TEXT es el tipo de cadena recomendado para SQLite)
 );
 
 -- Tabla persona
-CREATE TABLE persona (
+CREATE TABLE IF NOT EXISTS persona(
     dni INTEGER PRIMARY KEY,
     nombre TEXT NOT NULL,
     apellido TEXT NOT NULL,
@@ -22,7 +16,7 @@ CREATE TABLE persona (
 );
 
 -- Tabla profesor
-CREATE TABLE profesor (
+CREATE TABLE IF NOT EXISTS profesor (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
     correo TEXT NOT NULL UNIQUE,
@@ -30,7 +24,7 @@ CREATE TABLE profesor (
 );
 
 -- Tabla estudiante
-CREATE TABLE estudiante (
+CREATE TABLE IF NOT EXISTS estudiante (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dni INTEGER NOT NULL,
     anioIngreso INTEGER NOT NULL,
@@ -39,7 +33,7 @@ CREATE TABLE estudiante (
 );
 
 -- Tabla carrera
-CREATE TABLE carrera (
+CREATE TABLE IF NOT EXISTS carrera (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
     codigo INTEGER UNIQUE,
@@ -48,7 +42,7 @@ CREATE TABLE carrera (
 );
 
 -- Tabla plan
-CREATE TABLE plan(
+CREATE TABLE IF NOT EXISTS plan(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     año INTEGER NOT NULL,
     carrera_id INTEGER NOT NULL,
@@ -56,14 +50,14 @@ CREATE TABLE plan(
 );
 
 -- Tabla materia
-CREATE TABLE materia(
+CREATE TABLE IF NOT EXISTS materia(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
     codigo INTEGER UNIQUE
 );
 
 -- Tabla de la relacion N a N Plan-Materia
-CREATE TABLE plan_materia (
+CREATE TABLE IF NOT EXISTS plan_materia (
     plan_id INTEGER,
     materia_id INTEGER,
     PRIMARY KEY (plan_id, materia_id),
@@ -73,7 +67,7 @@ CREATE TABLE plan_materia (
 );
 
 -- Tabla correlatividad (relacion recursiva de materia)
-CREATE TABLE correlatividad(
+CREATE TABLE IF NOT EXISTS correlatividad(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     materia_id INTEGER NOT NULL,
     correlativa_id INTEGER NOT NULL,

@@ -1,6 +1,11 @@
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/User.java
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/config/DBConfigSingleton.java
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Profesor.java
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Persona.java
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/App.java
-/home/kulilinwachopistola/Desktop/Uni/Segundo año/Tercer cuatrimestre/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Estudiante.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/App.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Estudiante.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Carrera.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Profesor.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Persona.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/PlanMateria.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/User.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Plan.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Correlatividad.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/models/Materia.java
+/home/kulilinwachopistola/Desktop/Uni/Tercer año/IS_II/chadGPT/is1_2025_eti/src/main/java/com/is1/proyecto/config/DBConfigSingleton.java
