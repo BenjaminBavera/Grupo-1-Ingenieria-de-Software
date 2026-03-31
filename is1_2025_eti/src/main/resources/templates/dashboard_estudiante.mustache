@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal del Estudiante</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl">
+    <h1 class="text-3xl font-bold text-center text-blue-900 mb-6">Portal del Estudiante</h1>
+
+    {{#username}}
+        <p class="text-xl text-center text-gray-700 mb-8">¡Hola, <span class="font-semibold text-blue-600">{{username}}</span>!</p>
+    {{/username}}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-teal-50 border border-teal-200 p-6 rounded-lg text-center shadow-sm hover:shadow-md transition">
+            <h2 class="text-2xl font-bold text-teal-800 mb-3">Inscripción a Materias</h2>
+            <p class="text-gray-600 mb-4">Anotate en las materias disponibles para cursar este cuatrimestre.</p>
+            <a href="/inscripcion" class="inline-block bg-teal-600 text-white py-2 px-6 rounded-md hover:bg-teal-700 transition duration-300 font-semibold">
+                Ir a Inscripción
+            </a>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 p-6 rounded-lg text-center shadow-sm hover:shadow-md transition">
+            <h2 class="text-2xl font-bold text-blue-800 mb-3">Mi Estado Académico</h2>
+            <p class="text-gray-600 mb-4">Revisá tus notas, materias aprobadas y plan de estudio.</p>
+            <a href="#" class="inline-block bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 transition duration-300 font-semibold">
+                Ver Estado (Próximamente)
+            </a>
+        </div>
+    </div>
+
+    <div class="w-full flex justify-center mt-6 border-t pt-6">
+        <a href="/logout" class="bg-red-600 text-white py-2 px-8 rounded-md hover:bg-red-700 transition duration-300 text-lg font-medium">
+            Cerrar Sesión
+        </a>
+    </div>
+</div>
+</body>
+</html>

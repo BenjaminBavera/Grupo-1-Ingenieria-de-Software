@@ -551,21 +551,74 @@ public class App {
             }
         });
 
-        get("/crearMateria", (req,res) -> {
-            return new ModelAndView(new HashMap<>(), "crear_materia.mustache");
+        get("/crearMateria", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Manejo de mensajes de éxito/error enviados por redirecciones previas
+            String successMessage = req.queryParams("successMessage");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+
+            String errorMessage = req.queryParams("errorMessage");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // 2. Obtener los datos de la base de datos usando ActiveJDBC
+            List<Plan> listaPlanes = Plan.findAll();
+            List<Materia> listaMaterias = Materia.findAll();
+
+            // 3. Pasar las listas al modelo Mustache
+            // Las claves ("planes" y "materias") deben coincidir EXACTAMENTE
+            // con las etiquetas que usaste en tu crear_materia.mustache
+            model.put("planes", listaPlanes);
+            model.put("materias", listaMaterias);
+
+            return new ModelAndView(model, "crear_materia.mustache");
         }, new MustacheTemplateEngine());
 
         post("/crearMateria", (req, res) -> {
-           String nombre = req.queryParams("nombre");
-           int codigo = Integer.parseInt(req.queryParams("codigo"));
+            try {
+                // 1. Obtenemos los datos
+                String nombre = req.queryParams("nombre");
+                String codigoStr = req.queryParams("codigo");
 
-           Materia m = new Materia();
-           m.set("nombre", nombre);
-           m.set("codigo",codigo);
-           m.saveIt();
+                // 2. Validación básica para evitar nulos
+                if (nombre == null || nombre.trim().isEmpty() || codigoStr == null || codigoStr.trim().isEmpty()) {
+                    res.redirect("/crearMateria?errorMessage=Todos los campos son obligatorios.");
+                    return null;
+                }
 
-           res.redirect("/dashboard?successMessage=Materia creada");
-           return null;
+                int codigo = Integer.parseInt(codigoStr);
+
+                // 3. Intentamos guardar en la base de datos
+                Materia m = new Materia();
+                m.set("nombre", nombre);
+                m.set("codigo", codigo);
+                m.saveIt(); // Si el código ya existe, esto lanza una DBException
+
+                // 4. Si todo sale bien, redirigimos con éxito
+                // (Lo mando a /crearMateria para que el usuario vea la lista actualizada ahí mismo)
+                res.redirect("/crearMateria?successMessage=Materia '" + nombre + "' creada exitosamente.");
+
+            } catch (org.javalite.activejdbc.DBException e) {
+                // Atajamos el error de SQLite (casi seguro es por el código UNIQUE duplicado)
+                System.err.println("Error de Base de Datos al crear materia: " + e.getMessage());
+                res.redirect("/crearMateria?errorMessage=El código de materia ya existe en el sistema.");
+
+            } catch (NumberFormatException e) {
+                // Atajamos el error si en vez de un número ingresan letras en el código
+                System.err.println("Error de formato numérico: " + e.getMessage());
+                res.redirect("/crearMateria?errorMessage=El código debe ser un número válido.");
+
+            } catch (Exception e) {
+                // Atajamos cualquier otro error imprevisto
+                System.err.println("Error general al crear materia: " + e.getMessage());
+                res.redirect("/crearMateria?errorMessage=Error interno al intentar guardar la materia.");
+            }
+
+            return null; // Siempre retornamos null después de un redirect en Spark
         });
 
         post("/vincularPlanMateria", (req,res) ->{
@@ -617,6 +670,40 @@ public class App {
 
             res.redirect("/inscripcion?successMessage=Inscripción exitosa");
             return null;
+        });
+
+        get("/dashboradEstudiante", (req, res)->{
+           Map<String, Object> model = new HashMap<>();
+
+           String currentUsername = req.session().attribute("currentUsername");
+           model.put("username", currentUsername);
+
+           return new ModelAndView(model, "dashboard_estudiante.mustache");
+        }, new MustacheTemplateEngine());
+
+        get("/crearPlan", (req,res)->{
+            Map<String,Object> model= new HashMap<>();
+            List<Carrera> carreras = Carrera.findAll();
+            model.put("carreras", carreras);
+            return new ModelAndView(model, "crear_plan.mustache");
+        }, new MustacheTemplateEngine());
+
+        post("/crearPlan" , (req,res)->{
+           try{
+               int anio = Integer.parseInt(req.queryParams("anio"));
+               int carreraID = Integer.parseInt(req.queryParams("carrera_id"));
+
+               Plan nuevoPlan = new Plan();
+               nuevoPlan.set("año", anio);
+               nuevoPlan.set("carrera_id", carreraID);
+               nuevoPlan.saveIt();
+
+               res.redirect("/crearPlan?successMessage=Plan creado exitosamente.");
+           } catch (Exception e) {
+               System.err.println("Error al crear plan: " + e.getMessage());
+               res.redirect("/crearPlan?errorMessage=Error al crear el plan. Verifica los datos");
+           }
+           return null;
         });
 
     } // Fin del método main
