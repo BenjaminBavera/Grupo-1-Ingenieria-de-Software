@@ -672,7 +672,7 @@ public class App {
             return null;
         });
 
-        get("/dashboradEstudiante", (req, res)->{
+        get("/dashboardEstudiante", (req, res)->{
            Map<String, Object> model = new HashMap<>();
 
            String currentUsername = req.session().attribute("currentUsername");
@@ -705,6 +705,33 @@ public class App {
            }
            return null;
         });
+
+        // GET: Ruta para mostrar el dashboard (panel de control) del usuario.
+        // Requiere que el usuario esté autenticado.
+        get("/dashboardCarrera", (req, res) -> {
+            Map<String, Object> model = new HashMap<>(); // Modelo para la plantilla del dashboard.
+
+            // Intenta obtener el nombre de usuario y la bandera de login de la sesión.
+            String currentUsername = req.session().attribute("currentUserUsername");
+            Boolean loggedIn = req.session().attribute("loggedIn");
+
+            // 1. Verificar si el usuario ha iniciado sesión.
+            // Si no hay un nombre de usuario en la sesión, la bandera es nula o falsa,
+            // significa que el usuario no está logueado o su sesión expiró.
+            if (currentUsername == null || loggedIn == null || !loggedIn) {
+                System.out.println("DEBUG: Acceso no autorizado a /dashboard. Redirigiendo a /login.");
+                // Redirige al login con un mensaje de error.
+                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
+                return null; // Importante retornar null después de una redirección.
+            }
+
+            // 2. Si el usuario está logueado, añade el nombre de usuario al modelo para la plantilla.
+            model.put("username", currentUsername);
+
+            // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
+            return new ModelAndView(model, "dashboard_carrera.mustache");
+        }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
+
 
     } // Fin del método main
 } // Fin de la clase App
