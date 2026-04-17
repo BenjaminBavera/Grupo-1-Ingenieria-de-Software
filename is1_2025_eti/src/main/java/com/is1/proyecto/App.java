@@ -166,8 +166,93 @@ public class App {
             return new ModelAndView(new HashMap<>(), "user_form.mustache"); // No pasa un modelo específico, solo el formulario.
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
 
+        // GET: Muestra el formulario para registrar un nuevo Administrador
+        get("/crearAdmin", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+            // 1. Validar la sesión y el rol actual
+            String currentUsername = req.session().attribute("username");
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String rol = req.session().attribute("rol");
+            if (currentUsername == null || loggedIn == null || !loggedIn) {
+                res.redirect("/?error=Debes iniciar sesión para acceder a esta página.");
+                return null;
+            }
+            // ¡SEGURIDAD! Solo un administrador puede crear otro administrador
+            if (!"administrador".equals(rol)) {
+                System.out.println("DEBUG: Intento de acceso denegado a /crearAdmin por rol: " + rol);
+                // Lo mandamos a su panel correspondiente con un reto
+                res.redirect("/dashboard?error=No tienes permisos para registrar administradores.");
+                return null;
+            }
+            // 2. Capturar mensajes de éxito o error que vienen del POST
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+            // 3. Renderizar la plantilla HTML
+            return new ModelAndView(model, "crear_admin.mustache");
+        }, new MustacheTemplateEngine());
 
         // --- Rutas POST para manejar envíos de formularios y APIs ---
+        //Metodo post para crear un admin
+        post("/admin/new", (req, res) -> {
+            String username = req.queryParams("username");
+            String password = req.queryParams("password");
+            String nombre = req.queryParams("nombre");
+            String apellido = req.queryParams("apellido");
+            String dni = req.queryParams("dni");
+            String telefono = req.queryParams("telefono");
+
+            // Validaciones
+            if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
+                    nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || dni == null || dni.isEmpty()) {
+
+                res.status(400);
+                res.redirect("/crearAdmin?error=Todos los campos obligatorios son requeridos.");
+                return "";
+            }
+
+            try {
+                // Verificar duplicados
+                if (Usuario.findFirst("username = ?", username) != null) {
+                    throw new Exception("El nombre de usuario ya está en uso.");
+                }
+                if (Usuario.findFirst("dni = ?", dni) != null) {
+                    throw new Exception("El DNI ya está registrado.");
+                }
+
+                // Crear la entidad
+                Usuario admin = new Usuario();
+                admin.setUsername(username);
+                admin.setPassword(BCrypt.hashpw(password, BCrypt.gensalt())); // Hasheamos!
+                admin.setName(nombre);
+                admin.setApellido(apellido);
+                admin.setDNI(Integer.parseInt(dni));
+                admin.setTelefono(telefono);
+
+                // ¡LA CLAVE! Forzamos el rol desde el backend, el usuario no elige.
+                admin.setRol("administrador");
+
+                admin.saveIt(); // Guardamos en DB
+
+                res.status(201);
+                String mensaje = "Administrador " + nombre + " registrado exitosamente!";
+                String mensajeCodificado = URLEncoder.encode(mensaje, StandardCharsets.UTF_8.toString());
+                // Redirigimos de vuelta al formulario (o al dashboard, como prefieras)
+                res.redirect("/crearAdmin?message=" + mensajeCodificado);
+                return "";
+
+            } catch (Exception e) {
+                System.err.println("Error al registrar el admin: " + e.getMessage());
+                String errorMsg = URLEncoder.encode("Error: " + e.getMessage(), StandardCharsets.UTF_8.toString());
+                res.redirect("/crearAdmin?error=" + errorMsg);
+                return "";
+            }
+        });
 
         // POST: Maneja el envío del formulario de creación de nueva cuenta.
         post("/user/new", (req, res) -> {
@@ -306,7 +391,7 @@ public class App {
             }
         });
 
-        //registrarRutas();
+        registrarRutas();
 
         get("/inscripcion", (req,res) -> {
 //            // 1. Verificar que haya iniciado sesión
@@ -379,6 +464,31 @@ public class App {
 
             // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
             return new ModelAndView(model, "dashboard_carrera.mustache");
+        }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
+
+        // GET: Ruta para mostrar el dashboard (panel de control) del usuario.
+        // Requiere que el usuario esté autenticado.
+        get("/gestionUsuario", (req, res) -> {
+            Map<String, Object> model = new HashMap<>(); // Modelo para la plantilla del dashboard.
+
+            String currentUsername = req.session().attribute("username");
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String rol = req.session().attribute("rol");
+
+            // Validar sesión
+            if (currentUsername == null || loggedIn == null || !loggedIn) {
+                res.redirect("/?error=Debes iniciar sesión para acceder a esta página.");
+                return null;
+            }
+            // Validar rol (Solo Admins)
+            if (!"administrador".equals(rol)) {
+                res.redirect("/dashboard?error=No tienes permisos para gestionar usuarios.");
+                return null;
+            }
+            // Pasamos el nombre de usuario para que el Mustache lo salude
+            model.put("username", currentUsername);
+            // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
+            return new ModelAndView(model, "dashboard_gestUsuario.mustache");
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
 
     } // Fin del método main

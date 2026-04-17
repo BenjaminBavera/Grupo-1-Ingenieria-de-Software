@@ -23,23 +23,21 @@ public class ProfesorController {
     public static void registrarRutas(){
         get("/registrarProfesor", (req, res) -> {
             Map<String, Object> model = new HashMap<>(); // Crea un mapa para pasar datos a la plantilla.
-            // Intenta obtener el nombre de usuario y la bandera de login de la sesión.
-            String currentUsername = req.session().attribute("currentUserUsername");
+            String currentUsername = req.session().attribute("username");
             Boolean loggedIn = req.session().attribute("loggedIn");
-            // 1. Verificar si el usuario ha iniciado sesión.
-            // Si no hay un nombre de usuario en la sesión, la bandera es nula o falsa,
-            // significa que el usuario no está logueado o su sesión expiró.
+            String rol = req.session().attribute("rol");
+            // Validar sesión
             if (currentUsername == null || loggedIn == null || !loggedIn) {
-                System.out.println("DEBUG: Acceso no autorizado a /registrarProfesor. Redirigiendo a /login.");
-                // Redirige al login con un mensaje de error.
                 res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
-                return null; // Importante retornar null después de una redirección.
+                return null;
             }
-            // Obtener y añadir mensaje de éxito de los query parameters (ej. ?message=Cuenta creada!)
-            String successMessage = req.queryParams("message");
-            if (successMessage != null && !successMessage.isEmpty()) {
-                model.put("successMessage", successMessage);
+            // Validar rol (Solo Admins)
+            if (!"administrador".equals(rol)) {
+                res.redirect("/login?error=No tienes permisos para gestionar usuarios.");
+                return null;
             }
+            // Pasamos el nombre de usuario para que el Mustache lo salude
+            model.put("username", currentUsername);
             // Obtener y añadir mensaje de error de los query parameters (ej. ?error=Campos vacíos)
             String errorMessage = req.queryParams("error");
             if (errorMessage != null && !errorMessage.isEmpty()) {
@@ -115,7 +113,7 @@ public class ProfesorController {
                 res.status(201);
                 String mensaje = "Profesor " + nombre + " registrado exitosamente!";
                 String mensajeCodificado = URLEncoder.encode(mensaje, StandardCharsets.UTF_8.toString());
-                res.redirect("/crearCarrera?message=" + mensajeCodificado); // O la ruta a donde quieras redirigir
+                res.redirect("/registrarProfesor?message=" + mensajeCodificado);
                 return "";
 
             } catch (Exception e) {
