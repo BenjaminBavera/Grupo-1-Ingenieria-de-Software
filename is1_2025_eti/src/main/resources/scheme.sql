@@ -34,54 +34,52 @@ CREATE TABLE IF NOT EXISTS estudiante (
 
 -- Tabla carrera
 CREATE TABLE IF NOT EXISTS carrera (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
-    codigo INTEGER UNIQUE,
     plan_vigente_id INTEGER,
-    FOREIGN KEY (plan_vigente_id) REFERENCES plan(id)
+    FOREIGN KEY (plan_vigente_id) REFERENCES plan(codigo)
 );
 
 -- Tabla plan
 CREATE TABLE IF NOT EXISTS plan(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
     año INTEGER NOT NULL,
-    carrera_id INTEGER NOT NULL,
-    FOREIGN KEY (carrera_id) REFERENCES carrera(id) ON DELETE CASCADE
+    carrera_codigo INTEGER NOT NULL,
+    FOREIGN KEY (carrera_codigo) REFERENCES carrera(codigo) ON DELETE CASCADE
 );
 
 -- Tabla materia
 CREATE TABLE IF NOT EXISTS materia(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    codigo INTEGER UNIQUE
+    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL
 );
 
 -- Tabla de la relacion N a N Plan-Materia
 CREATE TABLE IF NOT EXISTS plan_materia (
-    plan_id INTEGER,
-    materia_id INTEGER,
-    PRIMARY KEY (plan_id, materia_id),
+    plan_codigo INTEGER,
+    materia_codigo INTEGER,
+    PRIMARY KEY (plan_codigo, materia_codigo),
 
-    FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE,
-    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE
+    FOREIGN KEY (plan_codigo) REFERENCES plan(codigo) ON DELETE CASCADE,
+    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
 );
 
 -- Tabla correlatividad (relacion recursiva de materia)
 CREATE TABLE IF NOT EXISTS correlatividad(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    materia_id INTEGER NOT NULL,
-    correlativa_id INTEGER NOT NULL,
+    materia_codigo INTEGER NOT NULL,
+    correlativa_codigo INTEGER NOT NULL,
     tipo TEXT CHECK(tipo IN ('regular', 'aprobada')),
 
-    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE,
-    FOREIGN KEY (correlativa_id) REFERENCES materia(id) ON DELETE CASCADE
+    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE,
+    FOREIGN KEY (correlativa_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS estudiante_materia(
     estudiante_id INTEGER NOT NULL,
-    materia_id INTEGER NOT NULL,
+    materia_codigo INTEGER NOT NULL,
     estado TEXT DEFAULT 'inscripto',
-    PRIMARY KEY (estudiante_id, materia_id),
+    PRIMARY KEY (estudiante_id, materia_codigo),
     FOREIGN KEY (estudiante_id) REFERENCES estudiante(id) ON DELETE CASCADE,
-    FOREIGN KEY (materia_id) REFERENCES materia(id) ON DELETE CASCADE
+    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
 );
