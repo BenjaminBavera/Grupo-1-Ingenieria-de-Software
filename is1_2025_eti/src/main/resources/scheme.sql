@@ -1,35 +1,34 @@
 PRAGMA foreign_keys = ON; --Habilita las claves foráneas
 
--- Crea la tabla 'users' con los campos originales, adaptados para SQLite
-CREATE TABLE IF NOT EXISTS users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT, -- Clave primaria autoincremental para SQLite
-    name TEXT NOT NULL UNIQUE,          -- Nombre de usuario (TEXT es el tipo de cadena recomendado para SQLite), con restricción UNIQUE
-    password TEXT NOT NULL           -- Contraseña hasheada (TEXT es el tipo de cadena recomendado para SQLite)
+-- 1. La superclase que unifica Credenciales + Datos Personales
+CREATE TABLE IF NOT EXISTS usuario (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,      -- Para el login
+    password TEXT NOT NULL,             -- Contraseña hasheada
+    dni INTEGER NOT NULL UNIQUE,        -- Dato personal
+    nombre TEXT NOT NULL,               -- Dato personal
+    apellido TEXT NOT NULL,             -- Dato personal
+    telefono TEXT,
+    rol TEXT CHECK(rol IN ('administrador', 'profesor', 'estudiante')) NOT NULL
 );
 
--- Tabla persona
-CREATE TABLE IF NOT EXISTS persona(
-    dni INTEGER PRIMARY KEY,
-    nombre TEXT NOT NULL,
-    apellido TEXT NOT NULL,
-    telefono TEXT 
-);
-
--- Tabla profesor
+-- 2. Tabla hija: Profesor
+-- Solo contiene datos exclusivos de su rol
 CREATE TABLE IF NOT EXISTS profesor (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    dni INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL UNIQUE, -- Relación 1 a 1 con la superclase
     correo TEXT NOT NULL UNIQUE,
-    CONSTRAINT fk_profesor_persona FOREIGN KEY (dni) REFERENCES persona(dni) ON DELETE CASCADE
+    CONSTRAINT fk_profesor_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
 );
 
--- Tabla estudiante
+-- 3. Tabla hija: Estudiante
+-- Solo contiene datos exclusivos de su rol
 CREATE TABLE IF NOT EXISTS estudiante (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    dni INTEGER NOT NULL,
+    usuario_id INTEGER NOT NULL UNIQUE, -- Relación 1 a 1 con la superclase
     anioIngreso INTEGER NOT NULL,
     nivel TEXT CHECK(nivel IN ('principiante', 'avanzado')),
-    CONSTRAINT fk_estudiante_persona FOREIGN KEY (dni) REFERENCES persona(dni) ON DELETE CASCADE
+    CONSTRAINT fk_estudiante_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
 );
 
 -- Tabla carrera
