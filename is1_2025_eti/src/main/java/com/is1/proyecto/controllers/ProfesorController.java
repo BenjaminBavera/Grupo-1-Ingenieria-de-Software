@@ -3,14 +3,16 @@ package com.is1.proyecto.controllers;
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.is1.proyecto.models.Persona;
+import com.is1.proyecto.models.Usuario;
 import com.is1.proyecto.models.Profesor;
+import org.javalite.activejdbc.Base;
 import spark.ModelAndView;
 import spark.template.mustache.MustacheTemplateEngine;
 import static spark.Spark.get;
 import static spark.Spark.post;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class ProfesorController {
 
@@ -50,66 +52,82 @@ public class ProfesorController {
 
         // POST: Maneja el envío del formulario de creación de un profesor nuevo.
         post("/registrarProfesor/new", (req, res) -> {
+            // 1. Ahora necesitamos credenciales de acceso, además de los datos físicos
+            String username = req.queryParams("username");
+            String password = req.queryParams("password");
             String nombre = req.queryParams("nombre");
             String apellido = req.queryParams("apellido");
             String correo = req.queryParams("correo");
             String dni = req.queryParams("dni");
+            String telefono = req.queryParams("telefono"); // Agregamos teléfono que está en la DB
 
-            // Validaciones básicas: campos no pueden ser nulos o vacíos.
-            if (nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || correo == null || correo.isEmpty() || dni == null || dni.isEmpty()) {
-                res.status(400); // Código de estado HTTP 400 (Bad Request).
-                // Redirige al formulario de creación con un mensaje de error.
-                res.redirect("/registrarProfesor?error=Nombre y apellido son requeridos.");
-                return ""; // Retorna una cadena vacía ya que la respuesta ya fue redirigida.
+            // Validaciones básicas (Asegurate de que no falten los nuevos campos)
+            if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
+                    nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() ||
+                    correo == null || correo.isEmpty() || dni == null || dni.isEmpty()) {
+
+                res.status(400);
+                res.redirect("/registrarProfesor?error=Todos los campos obligatorios son requeridos.");
+                return "";
             }
 
-            // Validar formato de correo
+            // Validar formato de correo (Mantenemos tu lógica)
             if (!correo.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
-                res.status(400); // Código de estado HTTP 400 (Bad Request).
                 res.redirect("/registrarProfesor?error=Correo invalido.");
-                return "";
-            }
-            // Verificar si la persona ya existe
-            Persona personaExistente = Persona.findFirst("dni = ?", dni);
-            if (personaExistente != null) {
-                res.redirect("/registrarProfesor?error=El DNI ya esta registrado.");
-                return "";
-            }
-            // Verificar si el correo del profesor ya existe
-            Profesor profesorExistente = Profesor.findFirst("correo = ?", correo);
-            if (profesorExistente != null) {
-                res.redirect("/registrarProfesor?error=El correo ya esta registrado.");
                 return "";
             }
 
             try {
-                // Intenta crear y guardar el nuevo profesor en la base de datos.
-                Persona per = new Persona();
-                Profesor pro = new Profesor(); // Crea una nueva instancia del modelo Profesor.
+                // INICIAMOS TRANSACCIÓN
+                Base.openTransaction();
 
-                per.set("nombre", nombre); // Asigna el nombre de persona.
-                per.set("apellido", apellido); // Asigna el apellido de persona.
-                per.set("dni", dni); // Asigna el dni de persona.
-                per.saveIt(); // Guarda la nueva persona en la tabla 'persona'.
+                // 1. Verificar si el username, DNI o correo ya existen
+                if (Usuario.findFirst("username = ?", username) != null) {
+                    throw new Exception("El nombre de usuario ya está en uso.");
+                }
+                if (Usuario.findFirst("dni = ?", dni) != null) {
+                    throw new Exception("El DNI ya está registrado.");
+                }
+                if (Profesor.findFirst("correo = ?", correo) != null) {
+                    throw new Exception("El correo ya está registrado.");
+                }
 
-                pro.set("dni", dni); //Asigna la fk dni de profesor.
-                pro.set("correo", correo); // Asigna el correo de profesor.
-                pro.saveIt(); // Guarda el nuevo profesor en la tabla 'profesor'.
+                // 2. Creamos la identidad padre (Usuario)
+                Usuario user = new Usuario();
+                user.setUsername(username);
+                user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt())); // Hasheado por seguridad
+                user.setName(nombre);
+                user.setApellido(apellido);
+                user.setDNI(Integer.parseInt(dni));
+                user.setTelefono(telefono); // Puede ser nulo
+                user.setRol("profesor"); // Asignamos el rol estrictamente
+                user.saveIt();
 
-                res.status(201); // Código de estado HTTP 201 (Created) para una creación exitosa.
-                // Redirige al formulario de creación con un mensaje de éxito.
+                // 3. Creamos el hijo (Profesor) vinculándolo al ID del Usuario recién creado
+                Profesor pro = new Profesor();
+                pro.set("usuario_id", user.getId()); // ¡CLAVE FORÁNEA!
+                pro.set("correo", correo);
+                pro.saveIt();
+
+                // CONFIRMAMOS TRANSACCIÓN
+                Base.commitTransaction();
+
+                res.status(201);
                 String mensaje = "Profesor " + nombre + " registrado exitosamente!";
                 String mensajeCodificado = URLEncoder.encode(mensaje, StandardCharsets.UTF_8.toString());
-                res.redirect("/registrarProfesor?message=" + mensajeCodificado);
-                return ""; // Retorna una cadena vacía.
+                res.redirect("/crearCarrera?message=" + mensajeCodificado); // O la ruta a donde quieras redirigir
+                return "";
 
             } catch (Exception e) {
-                // Si ocurre cualquier error durante la operación de DB (ej. nombre de usuario duplicado),
-                // se captura aquí y se redirige con un mensaje de error.
+                // SI ALGO FALLA, DESHACEMOS TODO
+                Base.rollbackTransaction();
                 System.err.println("Error al registrar el profesor: " + e.getMessage());
-                e.printStackTrace(); // Imprime el stack trace para depuración.
-                res.redirect("/registrarProfesor?error=Error interno al registrar profesor. Intente de nuevo.");
-                return ""; // Retorna una cadena vacía.
+                e.printStackTrace();
+
+                // Pasamos el mensaje de la excepción para que el usuario sepa qué falló (ej: "El DNI ya está registrado")
+                String errorMsg = URLEncoder.encode("Error: " + e.getMessage(), StandardCharsets.UTF_8.toString());
+                res.redirect("/registrarProfesor?error=" + errorMsg);
+                return "";
             }
         });
         // POST: Endpoint para añadir profesores (API que devuelve JSON, no HTML).

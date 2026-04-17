@@ -109,28 +109,25 @@ public class App {
         // GET: Ruta para mostrar el dashboard (panel de control) del usuario.
         // Requiere que el usuario esté autenticado.
         get("/dashboard", (req, res) -> {
-            Map<String, Object> model = new HashMap<>(); // Modelo para la plantilla del dashboard.
-
-            // Intenta obtener el nombre de usuario y la bandera de login de la sesión.
-            String currentUsername = req.session().attribute("currentUserUsername");
+            Map<String, Object> model = new HashMap<>();
+            String username = req.session().attribute("username");
             Boolean loggedIn = req.session().attribute("loggedIn");
+            String rol = req.session().attribute("rol");
 
-            // 1. Verificar si el usuario ha iniciado sesión.
-            // Si no hay un nombre de usuario en la sesión, la bandera es nula o falsa,
-            // significa que el usuario no está logueado o su sesión expiró.
-            if (currentUsername == null || loggedIn == null || !loggedIn) {
-                System.out.println("DEBUG: Acceso no autorizado a /dashboard. Redirigiendo a /login.");
-                // Redirige al login con un mensaje de error.
-                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
-                return null; // Importante retornar null después de una redirección.
+            // Validación de sesión
+            if (loggedIn == null || !loggedIn || username == null) {
+                res.redirect("/?error=Inicia sesión primero");
+                return null;
             }
-
-            // 2. Si el usuario está logueado, añade el nombre de usuario al modelo para la plantilla.
-            model.put("username", currentUsername);
-
-            // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
+            // Validación de Rol (solo permitimos al admin aquí)
+            if (!"administrador".equals(rol)) {
+                res.redirect("/?error=No tienes permisos de administrador");
+                return null;
+            }
+            model.put("username", username);
+            // Asegúrate de que el nombre del archivo coincida con el que tenías para el admin
             return new ModelAndView(model, "dashboard.mustache");
-        }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
+        }, new MustacheTemplateEngine());
 
         // GET: Ruta para cerrar la sesión del usuario.
         get("/logout", (req, res) -> {
@@ -211,61 +208,63 @@ public class App {
             }
         });
 
-
         // POST: Maneja el envío del formulario de inicio de sesión.
         post("/login", (req, res) -> {
-            Map<String, Object> model = new HashMap<>(); // Modelo para la plantilla de login o dashboard.
-
+            Map<String, Object> model = new HashMap<>();
             String username = req.queryParams("username");
             String plainTextPassword = req.queryParams("password");
-
-            // Validaciones básicas: campos de usuario y contraseña no pueden ser nulos o vacíos.
+            // Validaciones básicas
             if (username == null || username.isEmpty() || plainTextPassword == null || plainTextPassword.isEmpty()) {
                 res.status(400); // Bad Request.
                 model.put("errorMessage", "El nombre de usuario y la contraseña son requeridos.");
-                return new ModelAndView(model, "login.mustache"); // Renderiza la plantilla de login con error.
+                return new ModelAndView(model, "login.mustache");
             }
-
-            // Busca la cuenta en la base de datos por el nombre de usuario.
-            User ac = User.findFirst("name = ?", username);
-
+            // 1. Buscamos usando el NUEVO modelo y la columna correcta ('username')
+            Usuario ac = Usuario.findFirst("username = ?", username);
             // Si no se encuentra ninguna cuenta con ese nombre de usuario.
             if (ac == null) {
                 res.status(401); // Unauthorized.
-                model.put("errorMessage", "Usuario o contraseña incorrectos."); // Mensaje genérico por seguridad.
-                return new ModelAndView(model, "login.mustache"); // Renderiza la plantilla de login con error.
+                model.put("errorMessage", "Usuario o contraseña incorrectos.");
+                return new ModelAndView(model, "login.mustache");
             }
-
-            // Obtiene la contraseña hasheada almacenada en la base de datos.
-            String storedHashedPassword = ac.getString("password");
-
-            // Compara la contraseña en texto plano ingresada con la contraseña hasheada almacenada.
-            // BCrypt.checkpw hashea la plainTextPassword con el salt de storedHashedPassword y compara.
+            // Usamos el getter que creaste en el paso anterior
+            String storedHashedPassword = ac.getPassword();
+            // Comparamos las contraseñas
             if (BCrypt.checkpw(plainTextPassword, storedHashedPassword)) {
-                // Autenticación exitosa.
                 res.status(200); // OK.
-
-                // --- Gestión de Sesión ---
-                req.session(true).attribute("currentUserUsername", username); // Guarda el nombre de usuario en la sesión.
-                req.session().attribute("userId", ac.getId()); // Guarda el ID de la cuenta en la sesión (útil).
-                req.session().attribute("loggedIn", true); // Establece una bandera para indicar que el usuario está logueado.
-
-                System.out.println("DEBUG: Login exitoso para la cuenta: " + username);
-                System.out.println("DEBUG: ID de Sesión: " + req.session().id());
-
-
-                model.put("username", username); // Añade el nombre de usuario al modelo para el dashboard.
-                // Renderiza la plantilla del dashboard tras un login exitoso.
-                return new ModelAndView(model, "dashboard.mustache");
+                // --- 2. Gestión de Sesión Mejorada ---
+                req.session(true).attribute("username", ac.getUsername());
+                req.session().attribute("usuario_id", ac.getId());
+                req.session().attribute("loggedIn", true);
+                // ¡LA CLAVE DE LA ARQUITECTURA NUEVA! Guardamos el rol en sesión
+                String rol = ac.getRol();
+                req.session().attribute("rol", rol);
+                System.out.println("DEBUG: Login exitoso para la cuenta: " + username + " | Rol: " + rol);
+                // --- 3. Redirección Basada en Roles (Patrón PRG) ---
+                // Dependiendo de quién se logueó, lo mandamos a su pantalla correspondiente
+                switch (rol) {
+                    case "administrador":
+                        res.redirect("/dashboard"); // Usamos la ruta que ya tenías armada
+                        break;
+                    case "profesor":
+                        res.redirect("/dashboardProfesor");
+                        break;
+                    case "estudiante":
+                        res.redirect("/dashboardEstudiante");
+                        break;
+                    default:
+                        // Si por algún motivo tiene un rol inválido en la DB
+                        res.redirect("/login?error=Rol de usuario no reconocido.");
+                }
+                return null; // En Spark, después de un redirect SIEMPRE retornamos null
             } else {
                 // Contraseña incorrecta.
                 res.status(401); // Unauthorized.
                 System.out.println("DEBUG: Intento de login fallido para: " + username);
-                model.put("errorMessage", "Usuario o contraseña incorrectos."); // Mensaje genérico por seguridad.
-                return new ModelAndView(model, "login.mustache"); // Renderiza la plantilla de login con error.
+                model.put("errorMessage", "Usuario o contraseña incorrectos.");
+                return new ModelAndView(model, "login.mustache");
             }
-        }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta POST.
-
+        }, new MustacheTemplateEngine());
 
         // POST: Endpoint para añadir usuarios (API que devuelve JSON, no HTML).
         // Advertencia: Esta ruta tiene un propósito diferente a las de formulario HTML.
@@ -307,7 +306,7 @@ public class App {
             }
         });
 
-        registrarRutas();
+        //registrarRutas();
 
         get("/inscripcion", (req,res) -> {
 //            // 1. Verificar que haya iniciado sesión

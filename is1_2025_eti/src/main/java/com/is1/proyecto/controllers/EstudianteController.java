@@ -1,16 +1,20 @@
 package com.is1.proyecto.controllers;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.is1.proyecto.models.Persona;
+import com.is1.proyecto.models.Usuario;
 import com.is1.proyecto.models.Estudiante;
+import org.javalite.activejdbc.Base;
 import spark.ModelAndView;
 import spark.template.mustache.MustacheTemplateEngine;
 import static spark.Spark.get;
 import static spark.Spark.post;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import org.mindrot.jbcrypt.BCrypt;
+
 
 public class EstudianteController {
     // Instancia estática y final de ObjectMapper para la serialización/deserialización JSON.
@@ -47,53 +51,65 @@ public class EstudianteController {
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
 
 
-        // POST: Maneja el envío del formulario de creación de un estudiante nuevo.
         post("/registrarEstudiante/new", (req, res) -> {
+            String username = req.queryParams("username");
+            String password = req.queryParams("password");
             String nombre = req.queryParams("nombre");
             String apellido = req.queryParams("apellido");
             String dni = req.queryParams("dni");
+            String telefono = req.queryParams("telefono");
 
-            // Validaciones básicas: campos no pueden ser nulos o vacíos.
-            if (nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || dni == null || dni.isEmpty()) {
-                res.status(400); // Código de estado HTTP 400 (Bad Request).
-                // Redirige al formulario de creación con un mensaje de error.
-                res.redirect("/registrarEstudiante?error=Nombre y apellido son requeridos.");
-                return ""; // Retorna una cadena vacía ya que la respuesta ya fue redirigida.
-            }
-            // Verificar si la persona ya existe
-            Persona personaExistente = Persona.findFirst("dni = ?", dni);
-            if (personaExistente != null) {
-                res.redirect("/registrarEstudiante?error=El DNI ya esta registrado.");
+            if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
+                    nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || dni == null || dni.isEmpty()) {
+
+                res.status(400);
+                res.redirect("/registrarEstudiante?error=Todos los campos obligatorios son requeridos.");
                 return "";
             }
 
             try {
-                // Intenta crear y guardar el nuevo estudiante en la base de datos.
-                Persona per = new Persona();
-                Estudiante est = new Estudiante(); // Crea una nueva instancia del modelo Profesor.
+                Base.openTransaction();
 
-                per.set("nombre", nombre); // Asigna el nombre de persona.
-                per.set("apellido", apellido); // Asigna el apellido de persona.
-                per.set("dni", dni); // Asigna el dni de persona.
-                per.saveIt(); // Guarda la nueva persona en la tabla 'persona'.
+                // Verificaciones
+                if (Usuario.findFirst("username = ?", username) != null) {
+                    throw new Exception("El nombre de usuario ya está en uso.");
+                }
+                if (Usuario.findFirst("dni = ?", dni) != null) {
+                    throw new Exception("El DNI ya está registrado.");
+                }
 
-                est.set("dni", dni); //Asigna la fk dni de profesor.
-                est.saveIt(); // Guarda el nuevo profesor en la tabla 'profesor'.
+                // 1. Crear Padre (Usuario)
+                Usuario user = new Usuario();
+                user.setUsername(username);
+                user.setPassword(BCrypt.hashpw(password, BCrypt.gensalt()));
+                user.setName(nombre);
+                user.setApellido(apellido);
+                user.setDNI(Integer.parseInt(dni));
+                user.setTelefono(telefono);
+                user.setRol("estudiante");
+                user.saveIt();
 
-                res.status(201); // Código de estado HTTP 201 (Created) para una creación exitosa.
-                // Redirige al formulario de creación con un mensaje de éxito.
+                // 2. Crear Hijo (Estudiante)
+                Estudiante est = new Estudiante();
+                est.set("usuario_id", user.getId());
+                est.set("anioIngreso", LocalDate.now().getYear()); // Calculamos automático
+                est.set("nivel", "principiante"); // Por defecto según el CHECK de SQLite
+                est.saveIt();
+
+                Base.commitTransaction();
+
+                res.status(201);
                 String mensaje = "Estudiante " + nombre + " registrado exitosamente!";
                 String mensajeCodificado = URLEncoder.encode(mensaje, StandardCharsets.UTF_8.toString());
-                res.redirect("/registrarEstudiante?message=" + mensajeCodificado);
-                return ""; // Retorna una cadena vacía.
+                res.redirect("/crearCarrera?message=" + mensajeCodificado);
+                return "";
 
             } catch (Exception e) {
-                // Si ocurre cualquier error durante la operación de DB (ej. nombre de usuario duplicado),
-                // se captura aquí y se redirige con un mensaje de error.
+                Base.rollbackTransaction();
                 System.err.println("Error al registrar el estudiante: " + e.getMessage());
-                e.printStackTrace(); // Imprime el stack trace para depuración.
-                res.redirect("/registrarEstudiante?error=Error interno al registrar estudiante. Intente de nuevo.");
-                return ""; // Retorna una cadena vacía.
+                String errorMsg = URLEncoder.encode("Error: " + e.getMessage(), StandardCharsets.UTF_8.toString());
+                res.redirect("/registrarEstudiante?error=" + errorMsg);
+                return "";
             }
         });
         // POST: Endpoint para añadir estudiantes (API que devuelve JSON, no HTML).
