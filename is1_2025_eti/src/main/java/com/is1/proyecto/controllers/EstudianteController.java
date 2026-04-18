@@ -99,7 +99,7 @@ public class EstudianteController {
                 res.status(201);
                 String mensaje = "Estudiante " + nombre + " registrado exitosamente!";
                 String mensajeCodificado = URLEncoder.encode(mensaje, StandardCharsets.UTF_8.toString());
-                res.redirect("/crearCarrera?message=" + mensajeCodificado);
+                res.redirect("/registrarEstudiante?message=" + mensajeCodificado);
                 return "";
 
             } catch (Exception e) {
