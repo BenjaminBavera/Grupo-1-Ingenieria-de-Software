@@ -14,11 +14,28 @@ public class Materia extends Model {
         set("nombre", nombre);
     }
 
-    public int getCodigo() {
-        return getInteger("codigo");
+    public int getAnioCursado() {
+        return getInteger("anio_cursado");
     }
 
-    public void setCodigo(int codigo) {
-        set("codigo", codigo);
+    public void setAnioCursado(int anio) {
+        set("anio_cursado", anio);
+    }
+
+    public int getCuatrimestre() {
+        return getInteger("cuatrimestre");
+    }
+
+    public void setCuatrimestre(int cuatrimestre) {
+        set("cuatrimestre", cuatrimestre);
+    }
+
+    // La clave foránea que la une al Plan
+    public int getPlanId() {
+        return getInteger("plan_id");
+    }
+
+    public void setPlanId(int planId) {
+        set("plan_id", planId);
     }
 }

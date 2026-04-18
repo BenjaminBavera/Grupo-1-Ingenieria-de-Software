@@ -31,37 +31,32 @@ CREATE TABLE IF NOT EXISTS estudiante (
     CONSTRAINT fk_estudiante_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
 );
 
--- Tabla carrera
+-- 1. Tabla Carrera (La entidad padre principal)
 CREATE TABLE IF NOT EXISTS carrera (
-    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    plan_vigente_id INTEGER,
-    FOREIGN KEY (plan_vigente_id) REFERENCES plan(codigo)
+                                       id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                       nombre TEXT NOT NULL UNIQUE
 );
 
--- Tabla plan
-CREATE TABLE IF NOT EXISTS plan(
-    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
-    año INTEGER NOT NULL,
-    carrera_codigo INTEGER NOT NULL,
-    FOREIGN KEY (carrera_codigo) REFERENCES carrera(codigo) ON DELETE CASCADE
+-- 2. Tabla Plan (Pertenece a una Carrera)
+CREATE TABLE IF NOT EXISTS plan (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        anio INTEGER NOT NULL, -- ej: 2024
+        es_vigente BOOLEAN DEFAULT 1, -- 1 es true, 0 es false en SQLite
+        carrera_id INTEGER NOT NULL,
+        CONSTRAINT fk_plan_carrera FOREIGN KEY (carrera_id) REFERENCES carrera(id) ON DELETE CASCADE
 );
 
--- Tabla materia
-CREATE TABLE IF NOT EXISTS materia(
-    codigo INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL
+-- 3. Tabla Materia (Pertenece a un Plan)
+CREATE TABLE IF NOT EXISTS materia (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       nombre TEXT NOT NULL,
+       anio_cursado INTEGER, -- ej: 1 para "Primer Año"
+       cuatrimestre INTEGER, -- ej: 1 o 2
+       plan_id INTEGER NOT NULL,
+       CONSTRAINT fk_materia_plan FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE
 );
 
--- Tabla de la relacion N a N Plan-Materia
-CREATE TABLE IF NOT EXISTS plan_materia (
-    plan_codigo INTEGER,
-    materia_codigo INTEGER,
-    PRIMARY KEY (plan_codigo, materia_codigo),
 
-    FOREIGN KEY (plan_codigo) REFERENCES plan(codigo) ON DELETE CASCADE,
-    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
-);
 
 -- Tabla correlatividad (relacion recursiva de materia)
 CREATE TABLE IF NOT EXISTS correlatividad(
@@ -70,8 +65,8 @@ CREATE TABLE IF NOT EXISTS correlatividad(
     correlativa_codigo INTEGER NOT NULL,
     tipo TEXT CHECK(tipo IN ('regular', 'aprobada')),
 
-    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE,
-    FOREIGN KEY (correlativa_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
+    FOREIGN KEY (materia_codigo) REFERENCES materia(id) ON DELETE CASCADE,
+    FOREIGN KEY (correlativa_codigo) REFERENCES materia(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS estudiante_materia(
@@ -80,5 +75,5 @@ CREATE TABLE IF NOT EXISTS estudiante_materia(
     estado TEXT DEFAULT 'inscripto',
     PRIMARY KEY (estudiante_id, materia_codigo),
     FOREIGN KEY (estudiante_id) REFERENCES estudiante(id) ON DELETE CASCADE,
-    FOREIGN KEY (materia_codigo) REFERENCES materia(codigo) ON DELETE CASCADE
+    FOREIGN KEY (materia_codigo) REFERENCES materia(id) ON DELETE CASCADE
 );

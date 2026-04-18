@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión de Carreras</title>
+    <title>Gestión Académica</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl my-8">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Gestión de Carreras</h1>
+<div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-4xl my-8">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Gestión de Carreras y Materias</h1>
 
     {{#successMessage}}
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -22,52 +22,86 @@
         </div>
     {{/errorMessage}}
 
-    <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Crear Nueva Carrera</h2>
-        <form action="/crearCarrera/new" method="post" class="space-y-4">
-            <div>
-                <label for="nombre" class="block text-gray-700 text-sm font-medium mb-1">Nombre de la Carrera:</label>
-                <input type="text" id="nombre" name="nombre" required placeholder="Ej: Analista en Computación"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label for="codigo" class="block text-gray-700 text-sm font-medium mb-1">Código:</label>
-                <input type="number" id="codigo" name="codigo" required placeholder="Ej: 67"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <button type="submit"
-                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Guardar Carrera
-            </button>
-        </form>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+        <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">1. Crear Carrera</h2>
+            <form action="/crearCarrera/new" method="post" class="space-y-4">
+                <div>
+                    <label for="nombre_carrera" class="block text-gray-700 text-sm font-medium mb-1">Nombre de la Carrera:</label>
+                    <input type="text" id="nombre_carrera" name="nombre" required placeholder="Ej: Analista en Computación"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Guardar Carrera
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">2. Crear Plan de Estudio</h2>
+            <form action="/crearPlan/new" method="post" class="space-y-4">
+                <div>
+                    <label for="carrera_id" class="block text-gray-700 text-sm font-medium mb-1">Pertenece a Carrera:</label>
+                    <select id="carrera_id" name="carrera_id" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="" disabled selected>-- Seleccione una Carrera --</option>
+                        {{#carreras}}
+                            <option value="{{id}}">{{nombre}}</option>
+                        {{/carreras}}
+                    </select>
+                </div>
+                <div>
+                    <label for="anio_plan" class="block text-gray-700 text-sm font-medium mb-1">Año del Plan:</label>
+                    <input type="number" id="anio_plan" name="anio" required placeholder="Ej: 2024" min="1950"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit"
+                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Crear Plan
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="bg-gray-50 p-4 rounded-md border border-gray-200 mb-8">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">Vincular Materia a un Plan</h2>
-        <form action="/vincularPlanMateria" method="post" class="space-y-4">
-            <div>
-                <label for="plan_id" class="block text-gray-700 text-sm font-medium mb-1">Seleccionar Plan:</label>
-                <select id="plan_id" name="plan_id" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="" disabled selected>-- Seleccione un Plan --</option>
-                    {{#planes}}
-                        <option value="{{id}}">Plan N° {{id}} (Año: {{año}})</option>
-                    {{/planes}}
-                </select>
-            </div>
-            <div>
-                <label for="materia_id" class="block text-gray-700 text-sm font-medium mb-1">Seleccionar Materia:</label>
-                <select id="materia_id" name="materia_id" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                    <option value="" disabled selected>-- Seleccione una Materia --</option>
-                    {{#materias}}
-                        <option value="{{id}}">{{nombre}} ({{codigo}})</option>
-                    {{/materias}}
-                </select>
+        <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">3. Crear Materia y Vincular a Plan</h2>
+        <form action="/crearMateria/new" method="post" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="plan_id" class="block text-gray-700 text-sm font-medium mb-1">Asignar al Plan:</label>
+                    <select id="plan_id" name="plan_id" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                        <option value="" disabled selected>-- Seleccione un Plan --</option>
+                        {{#planes}}
+                            <option value="{{id}}">Plan {{anio}} - {{carreraNombre}}</option>
+                        {{/planes}}
+                    </select>
+                </div>
+                <div>
+                    <label for="nombre_materia" class="block text-gray-700 text-sm font-medium mb-1">Nombre de la Materia:</label>
+                    <input type="text" id="nombre_materia" name="nombre" required placeholder="Ej: Ingeniería de Software"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label for="anio_cursado" class="block text-gray-700 text-sm font-medium mb-1">Año de Cursado:</label>
+                    <input type="number" id="anio_cursado" name="anio_cursado" required placeholder="Ej: 3" min="1" max="6"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label for="cuatrimestre" class="block text-gray-700 text-sm font-medium mb-1">Cuatrimestre:</label>
+                    <select id="cuatrimestre" name="cuatrimestre" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                        <option value="1">1° Cuatrimestre</option>
+                        <option value="2">2° Cuatrimestre</option>
+                        <option value="0">Anual</option>
+                    </select>
+                </div>
             </div>
             <button type="submit"
-                    class="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
-                Vincular al Plan
+                    class="w-full mt-4 bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+                Crear y Vincular Materia
             </button>
         </form>
     </div>
@@ -78,8 +112,9 @@
             <thead>
             <tr class="bg-gray-200 text-gray-700 text-sm">
                 <th class="p-3 border-b border-gray-300 rounded-tl-md">ID</th>
-                <th class="p-3 border-b border-gray-300">Código</th>
                 <th class="p-3 border-b border-gray-300">Nombre</th>
+                <th class="p-3 border-b border-gray-300">Año</th>
+                <th class="p-3 border-b border-gray-300">Cuat.</th>
                 <th class="p-3 border-b border-gray-300 text-center rounded-tr-md">Acción</th>
             </tr>
             </thead>
@@ -87,8 +122,9 @@
             {{#materias}}
                 <tr class="hover:bg-gray-100 border-b border-gray-200">
                     <td class="p-3">{{id}}</td>
-                    <td class="p-3 font-mono text-gray-600">{{codigo}}</td>
-                    <td class="p-3">{{nombre}}</td>
+                    <td class="p-3 font-semibold text-gray-700">{{nombre}}</td>
+                    <td class="p-3">{{anio_cursado}}°</td>
+                    <td class="p-3">{{cuatrimestre}}</td>
                     <td class="p-3 text-center">
                         <form action="/eliminarMateria" method="POST" class="inline">
                             <input type="hidden" name="materia_id" value="{{id}}">
@@ -102,7 +138,7 @@
             {{/materias}}
             {{^materias}}
                 <tr>
-                    <td colspan="4" class="p-4 text-center text-gray-500">No hay materias cargadas.</td>
+                    <td colspan="5" class="p-4 text-center text-gray-500">No hay materias cargadas en el sistema.</td>
                 </tr>
             {{/materias}}
             </tbody>

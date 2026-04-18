@@ -1,5 +1,7 @@
 package com.is1.proyecto.controllers;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,29 +22,24 @@ public class PlanController {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static void registrarRutas(){
-        get("/crearPlan", (req,res)->{
-            Map<String,Object> model= new HashMap<>();
-            List<Carrera> carreras = Carrera.findAll();
-            model.put("carreras", carreras);
-            return new ModelAndView(model, "crear_plan.mustache");
-        }, new MustacheTemplateEngine());
+        post("/crearPlan/new", (req, res) -> {
+            String carreraId = req.queryParams("carrera_id");
+            String anio = req.queryParams("anio");
 
-        post("/crearPlan" , (req,res)->{
-            try{
-                int anio = Integer.parseInt(req.queryParams("anio"));
-                int carreraID = Integer.parseInt(req.queryParams("carrera_id"));
+            try {
+                Plan plan = new Plan();
+                plan.set("carrera_id", Integer.parseInt(carreraId));
+                plan.set("anio", Integer.parseInt(anio));
+                plan.set("es_vigente", true); // Por defecto es vigente
+                plan.saveIt();
 
-                Plan nuevoPlan = new Plan();
-                nuevoPlan.set("año", anio);
-                nuevoPlan.set("carrera_id", carreraID);
-                nuevoPlan.saveIt();
-
-                res.redirect("/crearPlan?successMessage=Plan creado exitosamente.");
+                String msg = URLEncoder.encode("Plan creado correctamente.", StandardCharsets.UTF_8.toString());
+                res.redirect("/crearCarrera?message=" + msg);
             } catch (Exception e) {
-                System.err.println("Error al crear plan: " + e.getMessage());
-                res.redirect("/crearPlan?errorMessage=Error al crear el plan. Verifica los datos");
+                String err = URLEncoder.encode("Error al crear plan: " + e.getMessage(), StandardCharsets.UTF_8.toString());
+                res.redirect("/crearCarrera?error=" + err);
             }
-            return null;
+            return "";
         });
 
 
