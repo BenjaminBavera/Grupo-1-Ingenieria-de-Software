@@ -1,31 +1,36 @@
 package com.is1.proyecto; // Define el paquete de la aplicación, debe coincidir con la estructura de carpetas.
 
 // Importaciones necesarias para la aplicación Spark
-import java.util.HashMap; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
-import java.util.List;
-import java.util.Map; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import java.net.URLEncoder; // Utilidad para serializar/deserializar objetos Java a/desde JSON.
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List; // Importa los métodos estáticos principales de Spark (get, post, before, after, etc.).
+import java.util.Map;
 
-import com.is1.proyecto.models.*;
 import org.javalite.activejdbc.Base; // Clase central de ActiveJDBC para gestionar la conexión a la base de datos.
 import org.mindrot.jbcrypt.BCrypt; // Utilidad para hashear y verificar contraseñas de forma segura.
 
 import com.fasterxml.jackson.databind.ObjectMapper; // Representa un modelo de datos y el nombre de la vista a renderizar.
 import com.is1.proyecto.config.DBConfigSingleton; // Motor de plantillas Mustache para Spark.
+import com.is1.proyecto.controllers.CarreraController; // Modelo de ActiveJDBC que representa la tabla 'users'.
+import com.is1.proyecto.controllers.EstudianteController; // Modelo de ActiveJDBC que representa la tabla 'profesor'.
+import com.is1.proyecto.controllers.MateriaController; // Modelo de ActiveJDBC que representa la tabla 'persona'.
+import com.is1.proyecto.controllers.PlanController;
+import com.is1.proyecto.controllers.ProfesorController;
+import com.is1.proyecto.models.Estudiante;
+import com.is1.proyecto.models.EstudianteMateria;
+import com.is1.proyecto.models.Materia;
+import com.is1.proyecto.models.User;
+import com.is1.proyecto.models.Usuario;
 
-import spark.ModelAndView; // Modelo de ActiveJDBC que representa la tabla 'users'.
-import static spark.Spark.after; // Modelo de ActiveJDBC que representa la tabla 'profesor'.
-import static spark.Spark.before; // Modelo de ActiveJDBC que representa la tabla 'persona'.
+import spark.ModelAndView; // Importar todos los controladores
+import static spark.Spark.after;
+import static spark.Spark.before;
 import static spark.Spark.get;
 import static spark.Spark.halt;
 import static spark.Spark.port;
 import static spark.Spark.post;
 import spark.template.mustache.MustacheTemplateEngine;
-
-//Para "encodear" el mensaje y que sea seguro viajar por la URL
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-import com.is1.proyecto.controllers.*; // Importar todos los controladores
 
 
 
@@ -82,6 +87,36 @@ public class App {
                 System.err.println("Error al cerrar conexión con ActiveJDBC: " + e.getMessage());
             }
         });
+
+        // -- Validacion de roles
+        before("/inscripcion", (req, res) -> {
+            String rol = req.session().attribute("rol");
+            if (!"estudiante".equals(rol)) {
+                halt(403, "Acceso denegado");
+            }
+        });
+
+        before("/estadoAcademico", (req, res) -> {
+            String rol = req.session().attribute("rol");
+            if (!"estudiante".equals(rol)) {
+                halt(403, "Acceso denegado");
+            }
+        });
+
+        before("/perfil", (req, res) -> {
+            String rol = req.session().attribute("rol");
+            if (!"estudiante".equals(rol)) {
+                halt(403, "Acceso denegado");
+            }
+        });
+
+        before("/inscribir", (req, res) -> {
+            String rol = req.session().attribute("rol");
+            if (!"estudiante".equals(rol)) {
+                halt(403, "Acceso denegado");
+            }
+        });
+
 
         // --- Rutas GET para renderizar formularios y páginas HTML ---
 
@@ -394,38 +429,73 @@ public class App {
         registrarRutas();
 
         get("/inscripcion", (req,res) -> {
-//            // 1. Verificar que haya iniciado sesión
-//            Boolean loggedIn = req.session().attribute("loggedIn");
-//            if (loggedIn == null || !loggedIn) {
-//                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
-//                return null;
-//            }
-//
-//            // 2. Verificar que el rol sea ESPECÍFICAMENTE "estudiante"
-//            String rolUsuario = req.session().attribute("rol");
-//            // Asumimos que guardaste el rol en minúsculas en la BD
-//            if (rolUsuario == null || !rolUsuario.equals("estudiante")) {
-//                System.out.println("DEBUG: Intento de acceso denegado a /inscripcion por rol: " + rolUsuario);
-//                // Lo mandamos al dashboard con un mensaje de error
-//                res.redirect("/dashboard?error=Acceso denegado. Esta sección es exclusiva para estudiantes.");
-//                return null;
-//            }
+        //            // 1. Verificar que haya iniciado sesión
+        //            Boolean loggedIn = req.session().attribute("loggedIn");
+        //            if (loggedIn == null || !loggedIn) {
+        //                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
+        //                return null;
+        //            }
+        //
+        //            // 2. Verificar que el rol sea ESPECÍFICAMENTE "estudiante"
+        //            String rolUsuario = req.session().attribute("rol");
+        //            // Asumimos que guardaste el rol en minúsculas en la BD
+        //            if (rolUsuario == null || !rolUsuario.equals("estudiante")) {
+        //                System.out.println("DEBUG: Intento de acceso denegado a /inscripcion por rol: " + rolUsuario);
+        //                // Lo mandamos al dashboard con un mensaje de error
+        //                res.redirect("/dashboard?error=Acceso denegado. Esta sección es exclusiva para estudiantes.");
+        //                return null;
+        //            }
 
             Map<String, Object> model = new HashMap<>();
 
-            List<Materia> materias = Materia.findAll();
-            model.put("materias", materias);
+            Integer usuarioId = req.session().attribute("usuario_id");
+
+            Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
+            Usuario usuario = Usuario.findById(usuarioId);
+
+            // Materias ya inscritas
+            List<EstudianteMateria> inscripciones = EstudianteMateria.where("estudiante_id = ?", estudiante.getId());
+
+            // Materias del plan
+            List<Materia> materiasDisponibles = Materia.where("id NOT IN (SELECT materia_codigo FROM estudiante_materia WHERE estudiante_id = ?)",
+            estudiante.getId());
+
+            model.put("materiasInscribir", materiasDisponibles);
+            model.put("materiasMatriculadas", inscripciones);
+
+            Map<String, Object> usuarioData = new HashMap<>();
+            usuarioData.put("nombre", usuario.get("nombre"));
+            usuarioData.put("apellido", usuario.get("apellido"));
+            usuarioData.put("dni", usuario.get("dni"));
+
+            model.put("usuario", usuarioData);
+            model.put("estudianteLogueado", estudiante);
 
             return new ModelAndView(model, "inscripcion.mustache");
         }, new MustacheTemplateEngine());
 
-        post("/inscribir", (req, res) ->{
+        post("/inscribir", (req, res) -> {
+
             int materiaID = Integer.parseInt(req.queryParams("materia_id"));
-            int estudianteID = req.session().attribute("userID");
+
+            Integer usuarioId = req.session().attribute("usuario_id");
+            Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
+
+            int estudianteID = ((Number) estudiante.getId()).intValue();
+
+            EstudianteMateria existente = EstudianteMateria.findFirst(
+        "estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID
+            );
+
+            if (existente != null) {
+                res.redirect("/inscripcion?errorMessage=Ya estás inscrito en esta materia");
+                return null;
+            }
 
             EstudianteMateria inscripcion = new EstudianteMateria();
             inscripcion.set("estudiante_id", estudianteID);
-            inscripcion.set("materia_id", materiaID);
+            inscripcion.set("materia_codigo", materiaID);
+            inscripcion.saveIt();
 
             res.redirect("/inscripcion?successMessage=Inscripción exitosa");
             return null;
@@ -490,6 +560,82 @@ public class App {
             // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
             return new ModelAndView(model, "dashboard_gestUsuario.mustache");
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
+
+
+        get("/estadoAcademico", (req, res) -> {
+
+            Map<String, Object> model = new HashMap<>();
+
+            Integer usuarioId = req.session().attribute("usuario_id");
+
+            Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
+
+            Usuario usuario = Usuario.findById(usuarioId);
+
+            List<Map> materias = Base.findAll(
+                "SELECT m.nombre, em.estado " +
+                "FROM estudiante_materia em " +
+                "JOIN materia m ON em.materia_codigo = m.id " +
+                "WHERE em.estudiante_id = ?",
+                estudiante.getId()
+            );
+
+            model.put("estudiante", estudiante);
+            model.put("usuario", usuario);
+            model.put("materias", materias);
+
+            return new ModelAndView(model, "estado_academico.mustache");
+
+        }, new MustacheTemplateEngine());
+
+
+        get("/perfil", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            Integer usuarioId = req.session().attribute("usuario_id");
+
+            Usuario user = Usuario.findById(usuarioId);
+
+            model.put("usuario", user);
+
+            String message = req.queryParams("message");
+            String error = req.queryParams("error");
+
+            if (message != null) model.put("message", message);
+            if (error != null) model.put("error", error);
+
+            return new ModelAndView(model, "perfil_estudiante.mustache");
+        }, new MustacheTemplateEngine());
+
+
+        post("/cambiarPassword", (req, res) -> {
+
+            int usuarioId = req.session().attribute("usuario_id");
+
+            String actual = req.queryParams("actual");
+            String nueva = req.queryParams("nueva");
+
+            Usuario user = Usuario.findById(usuarioId);
+
+            if (nueva.length() < 4) {
+                String err = URLEncoder.encode("Contraseña muy corta", StandardCharsets.UTF_8.toString());
+                res.redirect("/perfil?error=" + err);
+                return null;
+            }
+            
+            if (!BCrypt.checkpw(actual, user.getPassword())) {
+                String err = URLEncoder.encode("Contraseña actual incorrecta", StandardCharsets.UTF_8.toString());
+                res.redirect("/perfil?error=" + err);
+                return null;
+            }
+
+            user.setPassword(BCrypt.hashpw(nueva, BCrypt.gensalt()));
+            user.saveIt();
+
+            String msg = URLEncoder.encode("Contraseña actualizada correctamente", StandardCharsets.UTF_8.toString());
+            res.redirect("/perfil?message=" + msg);
+            return null;
+        });
 
     } // Fin del método main
 

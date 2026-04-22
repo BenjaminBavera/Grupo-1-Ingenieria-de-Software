@@ -34,6 +34,10 @@ public class Usuario extends Model{
         return getInteger("dni");
     }
 
+    public Integer getDni() {
+        return getInteger("dni");
+    }
+
     public void setDNI(int dni){
         set("dni", dni);
     }
