@@ -23,4 +23,12 @@ public class Profesor extends Model {
     public void setUsuarioId(int usuarioId) {
         set("usuario_id", usuarioId);
     }
+
+    public String getCargo(){
+        return getString("cargo");
+    }
+
+    public void setCargo(String cargo){
+        set("cargo", cargo);
+    }
 }

@@ -1,8 +1,11 @@
 package com.is1.proyecto.controllers;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.is1.proyecto.models.Materia;
+import com.is1.proyecto.models.ProfesorMateria;
 import com.is1.proyecto.models.Usuario;
 import com.is1.proyecto.models.Profesor;
 import org.javalite.activejdbc.Base;
@@ -171,6 +174,81 @@ public class ProfesorController {
                 res.status(500); // Internal Server Error.
                 return objectMapper.writeValueAsString(Map.of("error", "Error interno al registrar profesor: " + e.getMessage()));
             }
+        });
+
+        // GET: Mostrar el formulario para vincular profesores a materias
+        get("/vincularProfesores", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // Validaciones de sesión y rol de administrador (igual que arriba)
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String rol = req.session().attribute("rol");
+            if (loggedIn == null || !loggedIn || !"administrador".equals(rol)) {
+                res.redirect("/login?error=Acceso denegado.");
+                return null;
+            }
+
+            // Atajar mensajes de éxito o error
+            String successMessage = req.queryParams("successMessage");
+            if (successMessage != null) model.put("successMessage", successMessage);
+            String errorMessage = req.queryParams("errorMessage");
+            if (errorMessage != null) model.put("errorMessage", errorMessage);
+
+            // PASO CLAVE: Buscar datos para llenar los dropdowns
+            List<Materia> listaMaterias = Materia.findAll();
+            // Buscamos en la tabla Usuario a los que tienen rol 'profesor'
+            List<Usuario> listaProfesores = Usuario.where("rol = ?", "profesor");
+
+            model.put("materias", listaMaterias);
+            model.put("profesores", listaProfesores);
+
+            return new ModelAndView(model, "vincular_profesores.mustache");
+        }, new MustacheTemplateEngine());
+
+        // POST: Procesar la vinculación
+        post("/vincularProfesores", (req, res) -> {
+            try {
+                // 1. Obtener datos del formulario
+                // Nota: El form nos manda el ID del Usuario, no el del Profesor directamente
+                String usuarioIdStr = req.queryParams("profesor_id");
+                String materiaIdStr = req.queryParams("materia_id");
+                String cargo = req.queryParams("cargo");
+
+                // Validar nulos
+                if (usuarioIdStr == null || materiaIdStr == null || cargo == null) {
+                    res.redirect("/vincularProfesores?errorMessage=Todos los campos son obligatorios.");
+                    return null;
+                }
+
+                int usuarioId = Integer.parseInt(usuarioIdStr);
+                int materiaId = Integer.parseInt(materiaIdStr);
+
+                // 2. Buscar el registro "hijo" (Profesor) asociado a ese Usuario
+                Profesor profReal = Profesor.findFirst("usuario_id = ?", usuarioId);
+
+                if (profReal == null) {
+                    res.redirect("/vincularProfesores?errorMessage=Error interno: No se encontró el registro físico del profesor.");
+                    return null;
+                }
+
+                // 3. Crear y guardar la relación en la base de datos
+                ProfesorMateria vinculo = new ProfesorMateria();
+                vinculo.set("profesor_id", profReal.getId());
+                vinculo.set("materia_id", materiaId);
+                vinculo.set("cargo", cargo);
+                vinculo.saveIt(); // Si ya está vinculado, ActiveJDBC tirará DBException (por la primary key compuesta)
+
+                // 4. Redirigir con éxito
+                res.redirect("/vincularProfesores?successMessage=Profesor vinculado a la materia exitosamente.");
+
+            } catch (org.javalite.activejdbc.DBException e) {
+                System.err.println("Error de BD: " + e.getMessage());
+                res.redirect("/vincularProfesores?errorMessage=Este profesor ya está vinculado a esta materia.");
+            } catch (Exception e) {
+                System.err.println("Error general: " + e.getMessage());
+                res.redirect("/vincularProfesores?errorMessage=Error interno al procesar la solicitud.");
+            }
+            return null;
         });
     }
 }
