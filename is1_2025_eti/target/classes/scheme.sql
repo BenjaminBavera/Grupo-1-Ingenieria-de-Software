@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS estudiante (
     usuario_id INTEGER NOT NULL UNIQUE, -- Relación 1 a 1 con la superclase
     anioIngreso INTEGER NOT NULL,
     nivel TEXT CHECK(nivel IN ('principiante', 'avanzado')),
-    CONSTRAINT fk_estudiante_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE
+    carrera_id INTEGER,
+    CONSTRAINT fk_estudiante_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id) ON DELETE CASCADE,
+    CONSTRAINT fk_estudiante_carrera FOREIGN KEY (carrera_id) REFERENCES carrera(id) ON DELETE SET NULL
 );
 
 -- 1. Tabla Carrera (La entidad padre principal)

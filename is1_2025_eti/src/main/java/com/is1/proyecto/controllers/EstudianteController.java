@@ -47,6 +47,7 @@ public class EstudianteController {
             }
             // Pasamos el nombre de usuario para que el Mustache lo salude
             model.put("username", currentUsername);
+            
             // Obtener y añadir mensaje de error de los query parameters (ej. ?error=Campos vacíos)
             String successMessage = req.queryParams("message");
             if (successMessage != null && !successMessage.isEmpty()) {
@@ -71,7 +72,8 @@ public class EstudianteController {
             String telefono = req.queryParams("telefono");
 
             if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
-                    nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || dni == null || dni.isEmpty()) {
+                    nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() || 
+                    dni == null || dni.isEmpty()) {
 
                 res.status(400);
                 res.redirect("/registrarEstudiante?error=Todos los campos obligatorios son requeridos.");
@@ -178,18 +180,31 @@ public class EstudianteController {
 
             Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
 
+            Object carreraId = estudiante.get("carrera_id");
+            if (carreraId == null) {
+                // No tiene carrera, mandamos las carreras disponibles para que elija
+                model.put("carreras", Carrera.findAll());
+                model.put("sinCarrera", true);
+                return new ModelAndView(model, "inscripcion.mustache");
+            }
+
             Usuario usuario = Usuario.findById(usuarioId);
 
             List<Map> materias = Base.findAll(
-                    "SELECT m.nombre, em.estado " +
+                    "SELECT m.nombre, em.estado, em.materia_codigo " +
                             "FROM estudiante_materia em " +
                             "JOIN materia m ON em.materia_codigo = m.id " +
                             "WHERE em.estudiante_id = ?",
                     estudiante.getId()
             );
 
+            Map<String, Object> usuarioData = new HashMap<>();
+            usuarioData.put("nombre", usuario.getString("nombre"));
+            usuarioData.put("apellido", usuario.getString("apellido"));
+            usuarioData.put("dni", usuario.getString("dni"));
+            
+            model.put("usuario", usuarioData);
             model.put("estudiante", estudiante);
-            model.put("usuario", usuario);
             model.put("materias", materias);
 
             return new ModelAndView(model, "estado_academico.mustache");
@@ -250,28 +265,42 @@ public class EstudianteController {
             //            }
 
             Map<String, Object> model = new HashMap<>();
-
             Integer usuarioId = req.session().attribute("usuario_id");
-
             Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
             Usuario usuario = Usuario.findById(usuarioId);
 
-            // Materias ya inscritas
-            List<EstudianteMateria> inscripciones = EstudianteMateria.where("estudiante_id = ?", estudiante.getId());
+            Map<String, Object> usuarioData = new HashMap<>();
+            usuarioData.put("nombre", usuario.getString("nombre"));
+            usuarioData.put("apellido", usuario.getString("apellido"));
+            usuarioData.put("dni", usuario.getString("dni"));
+            model.put("usuario", usuarioData);
 
-            // Materias del plan
-            List<Materia> materiasDisponibles = Materia.where("id NOT IN (SELECT materia_codigo FROM estudiante_materia WHERE estudiante_id = ?)",
-                    estudiante.getId());
+            // ← CHEQUEO CLAVE
+            Object carreraId = estudiante.get("carrera_id");
+            if (carreraId == null) {
+                model.put("carreras", Carrera.findAll());
+                model.put("sinCarrera", true);
+                return new ModelAndView(model, "inscripcion.mustache");
+            }
+
+            // Si tiene carrera, cargamos las materias
+            List<Map> inscripciones = Base.findAll(
+                "SELECT m.id, m.nombre, m.anio_cursado, m.cuatrimestre, em.estado " +
+                "FROM estudiante_materia em " +
+                "JOIN materia m ON em.materia_codigo = m.id " +
+                "WHERE em.estudiante_id = ?",
+                estudiante.getId()
+            );
+
+            List<Materia> materiasDisponibles = Materia.where(
+                "plan_id IN (SELECT id FROM plan WHERE carrera_id = ?) " +
+                "AND id NOT IN (SELECT materia_codigo FROM estudiante_materia WHERE estudiante_id = ?)",
+                carreraId,
+                estudiante.getId()
+            );
 
             model.put("materiasInscribir", materiasDisponibles);
             model.put("materiasMatriculadas", inscripciones);
-
-            Map<String, Object> usuarioData = new HashMap<>();
-            usuarioData.put("nombre", usuario.get("nombre"));
-            usuarioData.put("apellido", usuario.get("apellido"));
-            usuarioData.put("dni", usuario.get("dni"));
-
-            model.put("usuario", usuarioData);
 
             if (!materiasDisponibles.isEmpty()) {
                 Materia primera = materiasDisponibles.get(0);
@@ -286,7 +315,6 @@ public class EstudianteController {
             }
 
             model.put("estudianteLogueado", estudiante);
-
             return new ModelAndView(model, "inscripcion.mustache");
         }, new MustacheTemplateEngine());
 
@@ -308,6 +336,27 @@ public class EstudianteController {
             inscripcion.set("materia_codigo", materiaID);
             inscripcion.saveIt();
             res.redirect("/inscripcion?successMessage=Inscripción exitosa");
+            return null;
+        });
+
+        post("/inscribirCarrera", (req, res) -> {
+            String carreraId = req.queryParams("carrera_id");
+            Integer usuarioId = req.session().attribute("usuario_id");
+
+            if (carreraId == null || carreraId.isEmpty()) {
+                res.redirect("/inscripcion?errorMessage=Debés seleccionar una carrera.");
+                return null;
+            }
+
+            try {
+                Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
+                estudiante.set("carrera_id", Integer.parseInt(carreraId));
+                estudiante.saveIt();
+                res.redirect("/inscripcion");
+            } catch (Exception e) {
+                System.err.println("Error al inscribir carrera: " + e.getMessage());
+                res.redirect("/inscripcion?errorMessage=Error al guardar la carrera.");
+            }
             return null;
         });
 
