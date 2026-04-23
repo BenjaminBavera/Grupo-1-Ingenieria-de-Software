@@ -1,21 +1,24 @@
 package com.is1.proyecto.controllers;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.javalite.activejdbc.Base;
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.is1.proyecto.models.Materia;
+import com.is1.proyecto.models.Profesor;
 import com.is1.proyecto.models.ProfesorMateria;
 import com.is1.proyecto.models.Usuario;
-import com.is1.proyecto.models.Profesor;
-import org.javalite.activejdbc.Base;
+
 import spark.ModelAndView;
-import spark.template.mustache.MustacheTemplateEngine;
 import static spark.Spark.get;
 import static spark.Spark.post;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import org.mindrot.jbcrypt.BCrypt;
+import spark.template.mustache.MustacheTemplateEngine;
 
 public class ProfesorController {
 
@@ -42,6 +45,11 @@ public class ProfesorController {
             // Pasamos el nombre de usuario para que el Mustache lo salude
             model.put("username", currentUsername);
             // Obtener y añadir mensaje de error de los query parameters (ej. ?error=Campos vacíos)
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            
             String errorMessage = req.queryParams("error");
             if (errorMessage != null && !errorMessage.isEmpty()) {
                 model.put("errorMessage", errorMessage);
@@ -61,11 +69,13 @@ public class ProfesorController {
             String correo = req.queryParams("correo");
             String dni = req.queryParams("dni");
             String telefono = req.queryParams("telefono"); // Agregamos teléfono que está en la DB
+            String cargo = req.queryParams("cargo");
 
             // Validaciones básicas (Asegurate de que no falten los nuevos campos)
             if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
                     nombre == null || nombre.isEmpty() || apellido == null || apellido.isEmpty() ||
-                    correo == null || correo.isEmpty() || dni == null || dni.isEmpty()) {
+                    correo == null || correo.isEmpty() || dni == null || dni.isEmpty() ||
+                    cargo == null || cargo.isEmpty()) {
 
                 res.status(400);
                 res.redirect("/registrarProfesor?error=Todos los campos obligatorios son requeridos.");
@@ -108,6 +118,7 @@ public class ProfesorController {
                 Profesor pro = new Profesor();
                 pro.set("usuario_id", user.getId()); // ¡CLAVE FORÁNEA!
                 pro.set("correo", correo);
+                pro.set("cargo", cargo);
                 pro.saveIt();
 
                 // CONFIRMAMOS TRANSACCIÓN

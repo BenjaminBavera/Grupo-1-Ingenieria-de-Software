@@ -27,8 +27,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <p><span class="font-semibold text-gray-700">Alumno:</span> {{usuario.nombre}} {{usuario.apellido}}</p>
             <p><span class="font-semibold text-gray-700">DNI:</span> {{usuario.dni}}</p>
-            <p><span class="font-semibold text-gray-700">Plan de Estudios:</span> {{plan.nombre}}</p>
-            <p><span class="font-semibold text-gray-700">Año de Plan:</span> {{plan.anio}}</p>
+            <p><span class="font-semibold text-gray-700">Carrera:</span> {{plan.nombre}}</p>
+            <p><span class="font-semibold text-gray-700">Plan:</span> {{plan.anio}}</p>
         </div>
     </div>
 
@@ -45,7 +45,7 @@
             <tbody class="text-sm">
             {{#materiasInscribir}}
                 <tr class="hover:bg-blue-50 transition border-b border-gray-100">
-                    <td class="p-3 font-mono text-blue-800">{{codigo}}</td>
+                    <td class="p-3 font-mono text-blue-800">{{id}}</td>
                     <td class="p-3">{{nombre}}</td>
                     <td class="p-3 text-center">
                         <form action="/inscribir" method="POST" class="m-0">
@@ -82,7 +82,7 @@
             <tbody class="text-sm">
             {{#materiasMatriculadas}}
                 <tr class="hover:bg-green-50 transition border-b border-gray-100">
-                    <td class="p-3 font-mono text-green-800">{{codigo}}</td>
+                    <td class="p-3 font-mono text-green-800">{{materia_codigo}}</td>
                     <td class="p-3">{{nombre}}</td>
                     <td class="p-3 text-gray-600">Periodo Actual</td>
                 </tr>

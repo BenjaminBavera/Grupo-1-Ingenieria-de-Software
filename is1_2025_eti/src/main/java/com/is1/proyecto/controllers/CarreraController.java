@@ -2,18 +2,20 @@ package com.is1.proyecto.controllers;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.is1.proyecto.models.Carrera;
 import com.is1.proyecto.models.Materia;
 import com.is1.proyecto.models.Plan;
-import com.is1.proyecto.models.PlanMateria;
+
 import spark.ModelAndView;
-import spark.template.mustache.MustacheTemplateEngine;
 import static spark.Spark.get;
 import static spark.Spark.post;
+import spark.template.mustache.MustacheTemplateEngine;
 
 public class CarreraController {
     // Instancia estática y final de ObjectMapper para la serialización/deserialización JSON.
@@ -37,7 +39,19 @@ public class CarreraController {
             model.put("username", currentUsername);
             // --- LA MAGIA NUEVA: Traemos los datos de la BD ---
             model.put("carreras", Carrera.findAll());
-            model.put("planes", Plan.findAll());
+            
+            List<Plan> planesRaw = Plan.findAll();
+            List<Map<String, Object>> planes = new ArrayList<>();
+            for (Plan p : planesRaw) {
+                Map<String, Object> planData = new HashMap<>();
+                planData.put("id", p.getId());
+                planData.put("anio", p.get("anio"));
+                Carrera c = Carrera.findById(p.get("carrera_id"));
+                planData.put("carreraNombre", c != null ? c.get("nombre") : "Sin carrera");
+                planes.add(planData);
+            }
+            model.put("planes", planes);
+
             model.put("materias", Materia.findAll());
             // --------------------------------------------------
             String successMessage = req.queryParams("message");

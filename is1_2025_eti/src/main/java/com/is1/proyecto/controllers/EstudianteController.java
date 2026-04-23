@@ -1,22 +1,27 @@
 package com.is1.proyecto.controllers;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.javalite.activejdbc.Base;
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.is1.proyecto.models.Carrera;
+import com.is1.proyecto.models.Estudiante;
 import com.is1.proyecto.models.EstudianteMateria;
 import com.is1.proyecto.models.Materia;
+import com.is1.proyecto.models.Plan;
 import com.is1.proyecto.models.Usuario;
-import com.is1.proyecto.models.Estudiante;
-import org.javalite.activejdbc.Base;
+
 import spark.ModelAndView;
-import spark.template.mustache.MustacheTemplateEngine;
 import static spark.Spark.get;
 import static spark.Spark.post;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import org.mindrot.jbcrypt.BCrypt;
+import spark.template.mustache.MustacheTemplateEngine;
 
 
 public class EstudianteController {
@@ -43,6 +48,11 @@ public class EstudianteController {
             // Pasamos el nombre de usuario para que el Mustache lo salude
             model.put("username", currentUsername);
             // Obtener y añadir mensaje de error de los query parameters (ej. ?error=Campos vacíos)
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            
             String errorMessage = req.queryParams("error");
             if (errorMessage != null && !errorMessage.isEmpty()) {
                 model.put("errorMessage", errorMessage);
@@ -262,6 +272,19 @@ public class EstudianteController {
             usuarioData.put("dni", usuario.get("dni"));
 
             model.put("usuario", usuarioData);
+
+            if (!materiasDisponibles.isEmpty()) {
+                Materia primera = materiasDisponibles.get(0);
+                Plan plan = Plan.findById(primera.get("plan_id"));
+                if (plan != null) {
+                    Carrera carrera = Carrera.findById(plan.get("carrera_id"));
+                    Map<String, Object> planData = new HashMap<>();
+                    planData.put("anio", plan.get("anio"));
+                    planData.put("nombre", carrera != null ? carrera.get("nombre") : "Sin carrera");
+                    model.put("plan", planData);
+                }
+            }
+
             model.put("estudianteLogueado", estudiante);
 
             return new ModelAndView(model, "inscripcion.mustache");
