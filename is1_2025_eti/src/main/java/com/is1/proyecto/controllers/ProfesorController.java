@@ -250,5 +250,86 @@ public class ProfesorController {
             }
             return null;
         });
+
+        get("/dashboardProfesor", (req, res)->{
+            Map<String, Object> model = new HashMap<>();
+
+            String currentUsername = req.session().attribute("currentUsername");
+            model.put("username", currentUsername);
+
+            return new ModelAndView(model, "dashboard_profesor.mustache");
+        }, new MustacheTemplateEngine());
+
+        get("/perfilProfesor", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+            Integer usuarioId = req.session().attribute("usuario_id");
+            Usuario user = Usuario.findById(usuarioId);
+            model.put("usuario", user);
+            String message = req.queryParams("message");
+            String error = req.queryParams("error");
+            if (message != null) model.put("message", message);
+            if (error != null) model.put("error", error);
+            return new ModelAndView(model, "perfil_profesor.mustache");
+        }, new MustacheTemplateEngine());
+
+        post("/cambiarPasswordProfesor", (req, res) -> {
+            int usuarioId = req.session().attribute("usuario_id");
+            String actual = req.queryParams("actual");
+            String nueva = req.queryParams("nueva");
+            Usuario user = Usuario.findById(usuarioId);
+            if (nueva.length() < 4) {
+                String err = URLEncoder.encode("Contraseña muy corta", StandardCharsets.UTF_8.toString());
+                res.redirect("/perfil?error=" + err);
+                return null;
+            }
+            if (!BCrypt.checkpw(actual, user.getPassword())) {
+                String err = URLEncoder.encode("Contraseña actual incorrecta", StandardCharsets.UTF_8.toString());
+                res.redirect("/perfil?error=" + err);
+                return null;
+            }
+            user.setPassword(BCrypt.hashpw(nueva, BCrypt.gensalt()));
+            user.saveIt();
+            String msg = URLEncoder.encode("Contraseña actualizada correctamente", StandardCharsets.UTF_8.toString());
+            res.redirect("/perfil?message=" + msg);
+            return null;
+        });
+
+        get("/materiasAsignadas", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Validar que sea un profesor logueado
+            String currentUsername = req.session().attribute("username");
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String rol = req.session().attribute("rol");
+
+            if (currentUsername == null || loggedIn == null || !loggedIn || !"profesor".equals(rol)) {
+                res.redirect("/login?error=Acceso denegado. Área exclusiva para profesores.");
+                return null;
+            }
+
+            try {
+                // 2. Buscar quién es el profesor que está logueado
+                Usuario userLogueado = Usuario.findFirst("username = ?", currentUsername);
+                Profesor profFisico = Profesor.findFirst("usuario_id = ?", userLogueado.getId());
+
+                if (profFisico != null) {
+                    // 3. La consulta mágica (JOIN) para traer todos los datos cruzados
+                    // Usamos LEFT JOIN para los planes por si una materia aún no fue vinculada a un plan
+                    String sql = "SELECT m.id, m.nombre AS materia_nombre, pm.cargo, p.anio AS plan_anio " +
+                            "FROM profesor_materia pm " +
+                            "JOIN materia m ON pm.materia_id = m.id " +
+                            "JOIN plan p ON m.plan_id = p.id " +
+                            "WHERE pm.profesor_id = ?";
+
+                    List<Map> listaMaterias = Base.findAll(sql, profFisico.getId());
+                    model.put("materiasAsignadas", listaMaterias);
+                }
+            } catch (Exception e) {
+                System.err.println("Error al cargar materias del profesor: " + e.getMessage());
+                model.put("errorMessage", "Error interno al cargar las materias.");
+            }
+
+            return new ModelAndView(model, "materias_profesor.mustache");
+        }, new MustacheTemplateEngine());
     }
 }
