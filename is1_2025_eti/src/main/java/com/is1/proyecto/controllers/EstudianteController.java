@@ -280,6 +280,15 @@ public class EstudianteController {
             if (carreraId == null) {
                 model.put("carreras", Carrera.findAll());
                 model.put("sinCarrera", true);
+                String error = req.queryParams("error");
+                if (error != null && !error.isEmpty()) {
+                    model.put("errorMessage", error);
+                }
+
+                String success = req.queryParams("successMessage");
+                if (success != null && !success.isEmpty()) {
+                    model.put("successMessage", success);
+                }
                 return new ModelAndView(model, "inscripcion.mustache");
             }
 
@@ -314,28 +323,80 @@ public class EstudianteController {
                 }
             }
 
+            String error = req.queryParams("error");
+            if (error != null && !error.isEmpty()) {
+                model.put("errorMessage", error);
+            }
+
+            String success = req.queryParams("successMessage");
+            if (success != null && !success.isEmpty()) {
+                model.put("successMessage", success);
+            }
+
             model.put("estudianteLogueado", estudiante);
             return new ModelAndView(model, "inscripcion.mustache");
         }, new MustacheTemplateEngine());
 
         post("/inscribir", (req, res) -> {
-
             int materiaID = Integer.parseInt(req.queryParams("materia_id"));
             Integer usuarioId = req.session().attribute("usuario_id");
             Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
             int estudianteID = ((Number) estudiante.getId()).intValue();
+
+            // Verificar si ya está inscripto
             EstudianteMateria existente = EstudianteMateria.findFirst(
-                    "estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID
+                "estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID
             );
             if (existente != null) {
-                res.redirect("/inscripcion?errorMessage=Ya estás inscrito en esta materia");
+                String errDup = URLEncoder.encode("Ya estas inscrito en esta materia.", StandardCharsets.UTF_8.toString());
+                res.redirect("/inscripcion?error=" + errDup);
                 return null;
             }
+
+            // Validar correlativas
+            List<Map> correlativas = Base.findAll(
+                "SELECT c.correlativa_codigo, c.tipo, m.nombre " +
+                "FROM correlatividad c " +
+                "JOIN materia m ON c.correlativa_codigo = m.id " +
+                "WHERE c.materia_codigo = ?",
+                materiaID
+            );
+
+            for (Map corr : correlativas) {
+                int correlativaCodigo = ((Number) corr.get("correlativa_codigo")).intValue();
+                String tipo = corr.get("tipo").toString();
+                String nombreCorrelativa = corr.get("nombre").toString();
+
+                EstudianteMateria estadoCorr = EstudianteMateria.findFirst(
+                    "estudiante_id = ? AND materia_codigo = ?", estudianteID, correlativaCodigo
+                );
+
+                boolean cumple = false;
+                if (estadoCorr != null) {
+                    String estado = estadoCorr.getString("estado");
+                    if (tipo.equals("regular") && (estado.equals("regular") || estado.equals("aprobada"))) {
+                        cumple = true;
+                    } else if (tipo.equals("aprobada") && estado.equals("aprobada")) {
+                        cumple = true;
+                    }
+                }
+
+                if (!cumple) {
+                    String condicion = tipo.equals("regular") ? "tener regularizada" : "tener aprobada";
+                    String error = "No podes inscribirte. Necesitas " + condicion + " la materia: " + nombreCorrelativa;
+                    String errorEncoded = URLEncoder.encode(error, StandardCharsets.UTF_8.toString());
+                    res.redirect("/inscripcion?error=" + errorEncoded);
+                    return null;
+                }
+            }
+
+            // Si pasa todas las validaciones, inscribir
             EstudianteMateria inscripcion = new EstudianteMateria();
             inscripcion.set("estudiante_id", estudianteID);
             inscripcion.set("materia_codigo", materiaID);
             inscripcion.saveIt();
-            res.redirect("/inscripcion?successMessage=Inscripción exitosa");
+            String successMsg = URLEncoder.encode("Inscripcion exitosa", StandardCharsets.UTF_8.toString());
+            res.redirect("/inscripcion?successMessage=" + successMsg);
             return null;
         });
 
