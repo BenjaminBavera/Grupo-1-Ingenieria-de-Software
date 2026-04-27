@@ -301,26 +301,36 @@ public class EstudianteController {
                 estudiante.getId()
             );
 
-            List<Materia> materiasDisponibles = Materia.where(
-                "plan_id IN (SELECT id FROM plan WHERE carrera_id = ?) " +
-                "AND id NOT IN (SELECT materia_codigo FROM estudiante_materia WHERE estudiante_id = ?)",
-                carreraId,
-                estudiante.getId()
+            List<Materia> materiasDisponibles = Materia.findBySQL(
+                "SELECT m.* FROM materia m " +
+                "WHERE m.plan_id IN (SELECT id FROM plan WHERE carrera_id = ?) " +
+                "AND m.id NOT IN (SELECT materia_codigo FROM estudiante_materia WHERE estudiante_id = ?) " +
+                "AND NOT EXISTS (" +
+                "   SELECT 1 FROM correlatividad c " +
+                "   WHERE c.materia_codigo = m.id " +
+                "   AND NOT EXISTS (" +
+                "       SELECT 1 FROM estudiante_materia em " +
+                "       WHERE em.estudiante_id = ? " +
+                "       AND em.materia_codigo = c.correlativa_codigo " +
+                "       AND (" +
+                "           (c.tipo = 'regular' AND em.estado IN ('regular', 'aprobada')) " +
+                "           OR (c.tipo = 'aprobada' AND em.estado = 'aprobada')" +
+                "       )" +
+                "   )" +
+                ")",
+                carreraId, estudiante.getId(), estudiante.getId()
             );
 
             model.put("materiasInscribir", materiasDisponibles);
             model.put("materiasMatriculadas", inscripciones);
 
-            if (!materiasDisponibles.isEmpty()) {
-                Materia primera = materiasDisponibles.get(0);
-                Plan plan = Plan.findById(primera.get("plan_id"));
-                if (plan != null) {
-                    Carrera carrera = Carrera.findById(plan.get("carrera_id"));
-                    Map<String, Object> planData = new HashMap<>();
-                    planData.put("anio", plan.get("anio"));
-                    planData.put("nombre", carrera != null ? carrera.get("nombre") : "Sin carrera");
-                    model.put("plan", planData);
-                }
+            Plan plan = Plan.findFirst("carrera_id = ?", carreraId);
+            if (plan != null) {
+                Carrera carrera = Carrera.findById(plan.get("carrera_id"));
+                Map<String, Object> planData = new HashMap<>();
+                planData.put("anio", plan.get("anio"));
+                planData.put("nombre", carrera != null ? carrera.get("nombre") : "Sin carrera");
+                model.put("plan", planData);
             }
 
             String error = req.queryParams("error");
@@ -337,35 +347,24 @@ public class EstudianteController {
             return new ModelAndView(model, "inscripcion.mustache");
         }, new MustacheTemplateEngine());
 
-        post("/inscribir", (req, res) -> {
-            // 1. Validación de sesión (Fundamental)
+         post("/inscribir", (req, res) -> {
+            
+            int materiaID = Integer.parseInt(req.queryParams("materia_id"));
             Integer usuarioId = req.session().attribute("usuario_id");
-            if (usuarioId == null) {
-                res.redirect("/login");
-                return null;
-            }
-
-            // 2. Validación de parámetro de entrada
-            String materiaIdRaw = req.queryParams("materia_id");
-            if (materiaIdRaw == null || materiaIdRaw.isEmpty()) {
-                res.redirect("/inscripcion?error=" + URLEncoder.encode("Materia no válida.", "UTF-8"));
-                return null;
-            }
-            
-            int materiaID = Integer.parseInt(materiaIdRaw);
             Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
-            
-            // Evitamos el cast manual de ID usando el método de ActiveJDBC
-            Object estudianteID = estudiante.getId();
+            int estudianteID = ((Number) estudiante.getId()).intValue();
 
-            // 3. Verificar duplicados
-            if (EstudianteMateria.findFirst("estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID) != null) {
+            // Verificar si ya está inscripto
+            EstudianteMateria existente = EstudianteMateria.findFirst(
+            "estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID);
+
+            if (existente != null) {
                 String msg = URLEncoder.encode("Ya estás inscripto en esta materia.", "UTF-8");
                 res.redirect("/inscripcion?error=" + msg);
                 return null;
             }
 
-            // 4. Validar correlativas
+            // Validar correlativas
             List<Map> correlativas = Base.findAll(
                 "SELECT c.correlativa_codigo, c.tipo, m.nombre " +
                 "FROM correlatividad c " +
@@ -375,22 +374,21 @@ public class EstudianteController {
             );
 
             for (Map corr : correlativas) {
-                Object correlativaCodigo = corr.get("correlativa_codigo");
+                int correlativaCodigo = ((Number) corr.get("correlativa_codigo")).intValue();
                 String tipo = corr.get("tipo").toString();
                 String nombreCorrelativa = corr.get("nombre").toString();
 
                 EstudianteMateria estadoCorr = EstudianteMateria.findFirst(
-                    "estudiante_id = ? AND materia_codigo = ?", estudianteID, correlativaCodigo
-                );
+                "estudiante_id = ? AND materia_codigo = ?", estudianteID, correlativaCodigo);
 
                 boolean cumple = false;
                 if (estadoCorr != null) {
                     String estado = estadoCorr.getString("estado");
-                    // Lógica de estados: aprobada siempre cumple regular
-                    if (tipo.equals("regular")) {
-                        cumple = "regular".equals(estado) || "aprobada".equals(estado);
-                    } else if (tipo.equals("aprobada")) {
-                        cumple = "aprobada".equals(estado);
+
+                    if (tipo.equals("regular") && (estado.equals("regular") || estado.equals("aprobada"))) {
+                        cumple = true;
+                    } else if (tipo.equals("aprobada") && estado.equals("aprobada")) {
+                        cumple = true;
                     }
                 }
 
@@ -402,16 +400,15 @@ public class EstudianteController {
                 }
             }
 
-            // 5. Inscripción final
+            // Si pasa todas las validaciones, inscribir
             EstudianteMateria inscripcion = new EstudianteMateria();
             inscripcion.set("estudiante_id", estudianteID);
             inscripcion.set("materia_codigo", materiaID);
             inscripcion.set("estado", "inscripto");
             inscripcion.saveIt();
-
             res.redirect("/inscripcion?successMessage=" + URLEncoder.encode("Inscripción exitosa", "UTF-8"));
             return null;
-        });
+        }); 
 
         post("/inscribirCarrera", (req, res) -> {
             String carreraId = req.queryParams("carrera_id");
