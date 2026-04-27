@@ -247,22 +247,22 @@ public class EstudianteController {
         });
 
         get("/inscripcion", (req,res) -> {
-            //            // 1. Verificar que haya iniciado sesión
-            //            Boolean loggedIn = req.session().attribute("loggedIn");
-            //            if (loggedIn == null || !loggedIn) {
-            //                res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
-            //                return null;
-            //            }
-            //
-            //            // 2. Verificar que el rol sea ESPECÍFICAMENTE "estudiante"
-            //            String rolUsuario = req.session().attribute("rol");
-            //            // Asumimos que guardaste el rol en minúsculas en la BD
-            //            if (rolUsuario == null || !rolUsuario.equals("estudiante")) {
-            //                System.out.println("DEBUG: Intento de acceso denegado a /inscripcion por rol: " + rolUsuario);
-            //                // Lo mandamos al dashboard con un mensaje de error
-            //                res.redirect("/dashboard?error=Acceso denegado. Esta sección es exclusiva para estudiantes.");
-            //                return null;
-            //            }
+                        // 1. Verificar que haya iniciado sesión
+                        Boolean loggedIn = req.session().attribute("loggedIn");
+                        if (loggedIn == null || !loggedIn) {
+                            res.redirect("/login?error=Debes iniciar sesión para acceder a esta página.");
+                            return null;
+                        }
+            
+                        // 2. Verificar que el rol sea ESPECÍFICAMENTE "estudiante"
+                        String rolUsuario = req.session().attribute("rol");
+                        // Asumimos que guardaste el rol en minúsculas en la BD
+                        if (rolUsuario == null || !rolUsuario.equals("estudiante")) {
+                            System.out.println("DEBUG: Intento de acceso denegado a /inscripcion por rol: " + rolUsuario);
+                            // Lo mandamos al dashboard con un mensaje de error
+                            res.redirect("/dashboard?error=Acceso denegado. Esta sección es exclusiva para estudiantes.");
+                            return null;
+                      }
 
             Map<String, Object> model = new HashMap<>();
             Integer usuarioId = req.session().attribute("usuario_id");
@@ -338,22 +338,34 @@ public class EstudianteController {
         }, new MustacheTemplateEngine());
 
         post("/inscribir", (req, res) -> {
-            int materiaID = Integer.parseInt(req.queryParams("materia_id"));
+            // 1. Validación de sesión (Fundamental)
             Integer usuarioId = req.session().attribute("usuario_id");
-            Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
-            int estudianteID = ((Number) estudiante.getId()).intValue();
-
-            // Verificar si ya está inscripto
-            EstudianteMateria existente = EstudianteMateria.findFirst(
-                "estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID
-            );
-            if (existente != null) {
-                String errDup = URLEncoder.encode("Ya estas inscrito en esta materia.", StandardCharsets.UTF_8.toString());
-                res.redirect("/inscripcion?error=" + errDup);
+            if (usuarioId == null) {
+                res.redirect("/login");
                 return null;
             }
 
-            // Validar correlativas
+            // 2. Validación de parámetro de entrada
+            String materiaIdRaw = req.queryParams("materia_id");
+            if (materiaIdRaw == null || materiaIdRaw.isEmpty()) {
+                res.redirect("/inscripcion?error=" + URLEncoder.encode("Materia no válida.", "UTF-8"));
+                return null;
+            }
+            
+            int materiaID = Integer.parseInt(materiaIdRaw);
+            Estudiante estudiante = Estudiante.findFirst("usuario_id = ?", usuarioId);
+            
+            // Evitamos el cast manual de ID usando el método de ActiveJDBC
+            Object estudianteID = estudiante.getId();
+
+            // 3. Verificar duplicados
+            if (EstudianteMateria.findFirst("estudiante_id = ? AND materia_codigo = ?", estudianteID, materiaID) != null) {
+                String msg = URLEncoder.encode("Ya estás inscripto en esta materia.", "UTF-8");
+                res.redirect("/inscripcion?error=" + msg);
+                return null;
+            }
+
+            // 4. Validar correlativas
             List<Map> correlativas = Base.findAll(
                 "SELECT c.correlativa_codigo, c.tipo, m.nombre " +
                 "FROM correlatividad c " +
@@ -363,7 +375,7 @@ public class EstudianteController {
             );
 
             for (Map corr : correlativas) {
-                int correlativaCodigo = ((Number) corr.get("correlativa_codigo")).intValue();
+                Object correlativaCodigo = corr.get("correlativa_codigo");
                 String tipo = corr.get("tipo").toString();
                 String nombreCorrelativa = corr.get("nombre").toString();
 
@@ -374,29 +386,30 @@ public class EstudianteController {
                 boolean cumple = false;
                 if (estadoCorr != null) {
                     String estado = estadoCorr.getString("estado");
-                    if (tipo.equals("regular") && (estado.equals("regular") || estado.equals("aprobada"))) {
-                        cumple = true;
-                    } else if (tipo.equals("aprobada") && estado.equals("aprobada")) {
-                        cumple = true;
+                    // Lógica de estados: aprobada siempre cumple regular
+                    if (tipo.equals("regular")) {
+                        cumple = "regular".equals(estado) || "aprobada".equals(estado);
+                    } else if (tipo.equals("aprobada")) {
+                        cumple = "aprobada".equals(estado);
                     }
                 }
 
                 if (!cumple) {
-                    String condicion = tipo.equals("regular") ? "tener regularizada" : "tener aprobada";
-                    String error = "No podes inscribirte. Necesitas " + condicion + " la materia: " + nombreCorrelativa;
-                    String errorEncoded = URLEncoder.encode(error, StandardCharsets.UTF_8.toString());
-                    res.redirect("/inscripcion?error=" + errorEncoded);
+                    String condicion = tipo.equals("regular") ? "regularizada" : "aprobada";
+                    String error = "No podés inscribirte. Necesitás tener " + condicion + ": " + nombreCorrelativa;
+                    res.redirect("/inscripcion?error=" + URLEncoder.encode(error, "UTF-8"));
                     return null;
                 }
             }
 
-            // Si pasa todas las validaciones, inscribir
+            // 5. Inscripción final
             EstudianteMateria inscripcion = new EstudianteMateria();
             inscripcion.set("estudiante_id", estudianteID);
             inscripcion.set("materia_codigo", materiaID);
+            inscripcion.set("estado", "inscripto");
             inscripcion.saveIt();
-            String successMsg = URLEncoder.encode("Inscripcion exitosa", StandardCharsets.UTF_8.toString());
-            res.redirect("/inscripcion?successMessage=" + successMsg);
+
+            res.redirect("/inscripcion?successMessage=" + URLEncoder.encode("Inscripción exitosa", "UTF-8"));
             return null;
         });
 
