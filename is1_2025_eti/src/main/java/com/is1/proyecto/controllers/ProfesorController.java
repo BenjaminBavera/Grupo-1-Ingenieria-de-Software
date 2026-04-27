@@ -10,6 +10,7 @@ import org.javalite.activejdbc.Base;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.is1.proyecto.models.EstudianteMateria;
 import com.is1.proyecto.models.Materia;
 import com.is1.proyecto.models.Profesor;
 import com.is1.proyecto.models.ProfesorMateria;
@@ -342,5 +343,91 @@ public class ProfesorController {
 
             return new ModelAndView(model, "materias_profesor.mustache");
         }, new MustacheTemplateEngine());
+
+        get("/cargarNotas/:materiaId", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+            int materiaId = Integer.parseInt(req.params("materiaId"));
+
+            List<Map> estudiantes = Base.findAll(
+                "SELECT u.nombre, u.apellido, u.dni, em.estado, em.nota, em.estudiante_id, em.materia_codigo " +
+                "FROM estudiante_materia em " +
+                "JOIN estudiante e ON em.estudiante_id = e.id " +
+                "JOIN usuario u ON e.usuario_id = u.id " +
+                "WHERE em.materia_codigo = ?",
+                materiaId
+            );
+
+            Materia materia = Materia.findById(materiaId);
+            model.put("estudiantes", estudiantes);
+            model.put("materia", materia);
+
+            String error = req.queryParams("error");
+            if (error != null) model.put("error", error);
+            String message = req.queryParams("message");
+            if (message != null) model.put("message", message);
+
+            return new ModelAndView(model, "cargar_notas.mustache");
+        }, new MustacheTemplateEngine());
+
+        post("/cargarNotas", (req, res) -> {
+            int estudianteId = Integer.parseInt(req.queryParams("estudiante_id"));
+            int materiaId = Integer.parseInt(req.queryParams("materia_id"));
+            String notaStr = req.queryParams("nota");
+            String estadoManual = req.queryParams("estado_manual");
+
+            try {
+                EstudianteMateria em = EstudianteMateria.findFirst(
+                    "estudiante_id = ? AND materia_codigo = ?", estudianteId, materiaId
+                );
+
+                if (em == null) {
+                    String err = URLEncoder.encode("No se encontro la inscripcion.", StandardCharsets.UTF_8.toString());
+                    res.redirect("/cargarNotas/" + materiaId + "?error=" + err);
+                    return null;
+                }
+
+                // Si el docente cambia manualmente a aprobada
+                if (estadoManual != null && estadoManual.equals("aprobada")) {
+                    Base.exec(
+                        "UPDATE estudiante_materia SET estado = ? WHERE estudiante_id = ? AND materia_codigo = ?",
+                        "aprobada", estudianteId, materiaId
+                    );
+                    String msg = URLEncoder.encode("Estado actualizado a aprobada.", StandardCharsets.UTF_8.toString());
+                    res.redirect("/cargarNotas/" + materiaId + "?message=" + msg);
+                    return null;
+                }
+
+                // Calcular estado según nota
+                int nota = Integer.parseInt(notaStr);
+                if (nota < 1 || nota > 10) {
+                    String err = URLEncoder.encode("La nota debe estar entre 1 y 10.", StandardCharsets.UTF_8.toString());
+                    res.redirect("/cargarNotas/" + materiaId + "?error=" + err);
+                    return null;
+                }
+
+                String estado;
+                if (nota >= 7) {
+                    estado = "aprobada";
+                } else if (nota >= 5) {
+                    estado = "regular";
+                } else {
+                    estado = "libre";
+                }
+
+                Base.exec(
+                    "UPDATE estudiante_materia SET nota = ?, estado = ? WHERE estudiante_id = ? AND materia_codigo = ?",
+                    nota, estado, estudianteId, materiaId
+                );
+
+                String msg = URLEncoder.encode("Nota guardada correctamente.", StandardCharsets.UTF_8.toString());
+                res.redirect("/cargarNotas/" + materiaId + "?message=" + msg);
+
+            } catch (Exception e) {
+                System.err.println("Error al cargar nota: " + e.getMessage());
+                String err = URLEncoder.encode("Error al guardar la nota.", StandardCharsets.UTF_8.toString());
+                res.redirect("/cargarNotas/" + materiaId + "?error=" + err);
+            }
+            return null;
+        });
     }
 }

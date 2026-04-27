@@ -59,8 +59,6 @@ CREATE TABLE IF NOT EXISTS materia (
     CONSTRAINT fk_materia_plan FOREIGN KEY (plan_id) REFERENCES plan(id) ON DELETE CASCADE
 );
 
-
-
 -- Tabla correlatividad (relacion recursiva de materia)
 CREATE TABLE IF NOT EXISTS correlatividad(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +74,7 @@ CREATE TABLE IF NOT EXISTS estudiante_materia(
     estudiante_id INTEGER NOT NULL,
     materia_codigo INTEGER NOT NULL,
     estado TEXT DEFAULT 'inscripto',
+    nota INTEGER,
     PRIMARY KEY (estudiante_id, materia_codigo),
     FOREIGN KEY (estudiante_id) REFERENCES estudiante(id) ON DELETE CASCADE,
     FOREIGN KEY (materia_codigo) REFERENCES materia(id) ON DELETE CASCADE
